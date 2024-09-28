@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { registerUser, verifyCodeAndRegister , loginUser } from '../controllers/authController';
-
-
+import { mailControl, verifyCode, registerUser, loginUser } from '../controllers/authController';
 
 const router = Router();
 
-router.post('/register', registerUser);  // Kullanıcı kayıt ve doğrulama kodu gönderme
-router.post('/verify', verifyCodeAndRegister);  // Doğrulama kodu ve şifre oluşturma
+router.post('/mailcontrol', mailControl);  // Mail doğrulama kodu gönderme
+router.post('/verify', verifyCode);  // Doğrulama kodunu kontrol et
+router.post('/register', registerUser);  // Kullanıcı adı ve şifre ile kayıt
 router.post('/login', loginUser);  // Giriş ve JWT token oluşturma
 
 export default router;

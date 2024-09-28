@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document , CallbackError } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 // Kullanıcı arayüzü
@@ -13,7 +13,7 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema(
   {
     UserName: { type: String},
-    UserMail: { type: String},  // E-posta adresinin benzersiz (unique) olması iyi olur
+    UserMail: { type: String , unique: true},  // E-posta adresinin benzersiz (unique) olması iyi olur
     UserPassword: { type: String },
   },
   { timestamps: true }
@@ -21,8 +21,9 @@ const UserSchema: Schema = new Schema(
 
 // Şifre hashleme işlemi, kaydetmeden önce (pre-save hook)
 UserSchema.pre<IUser>('save', async function (next) {
+  // Eğer şifre değiştirilmediyse, hashleme işlemini atla
   if (!this.isModified('UserPassword')) {
-    return next();  // Şifre değiştirilmemişse işlemi atla
+    return next();
   }
 
   try {
@@ -30,9 +31,11 @@ UserSchema.pre<IUser>('save', async function (next) {
     this.UserPassword = await bcrypt.hash(this.UserPassword, salt);  // Şifreyi hashleme
     next();
   } catch (error) {
-    console.log("Hashleme hatası ",error)
+    console.log("Hashleme hatası ", error);
+    next(error as CallbackError);  // Hatayı işleme al, mongoose işlemi durdursun
   }
 });
+
 
 // Şifreyi karşılaştırma yöntemi
 UserSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
