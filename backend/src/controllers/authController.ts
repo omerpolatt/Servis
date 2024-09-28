@@ -20,8 +20,6 @@ export const mailControl = async (req: Request, res: Response) => {
       // Doğrulama kodu oluştur ve kullanıcıya gönder
       const verificationCode = await sendVerificationCode(email);
 
-      // Geçici doğrulama kodunu bellekte saklayın
-      // Doğrulama kodunu kullanıcı modeline eklemek yerine, ayrı bir şekilde tutabilirsiniz
       res.status(200).json({ message: 'Doğrulama kodu gönderildi. Lütfen e-postanızı kontrol edin.' });
   } catch (error) {
       console.error(error);
@@ -34,9 +32,6 @@ export const verifyCode = async (req: Request, res: Response) => {
   const { email, verificationCode } = req.body;
 
   try {
-      // Bu kısımda geçici olarak sakladığınız doğrulama kodunu kontrol etmelisiniz
-      // Eğer doğrulama kodu doğruysa kullanıcıya kaydolma izni verirsiniz
-
       // E-posta doğrulandıysa
       res.status(200).json({ message: 'E-posta doğrulandı. Artık kayıt olabilirsiniz.' });
   } catch (error) {
@@ -47,60 +42,60 @@ export const verifyCode = async (req: Request, res: Response) => {
 
 // Kullanıcıyı kayıt et
 export const registerUser = async (req: Request, res: Response) => {
-  const { email, name, password } = req.body;
+  const { UserName, UserMail, UserPassword } = req.body;
+
+  if (!UserName || !UserMail || !UserPassword) {
+    return res.status(400).json({ message: 'Kullanıcı adı, e-posta ve şifre gerekli.' });
+  }
 
   try {
-      // E-posta zaten kayıtlı mı kontrol et
-      const userExists = await User.findOne({ UserMail: email });
-      if (userExists) {
-          return res.status(400).json({ message: 'Bu e-posta ile zaten kayıt olunmuş.' });
-      }
+    // Mevcut kullanıcıyı kontrol et
+    const userExists = await User.findOne({ UserMail });
+    if (userExists) {
+      return res.status(400).json({ message: 'Bu e-posta ile zaten kayıt olunmuş.' });
+    }
 
-      // Kullanıcı oluştur ve kaydet
-      const newUser = new User({
-          UserMail: email,
-          UserName: name,
-          UserPassword: password,  // Şifreyi burada hashlemiyoruz, pre-save hook bunu yapacak
-      });
+    // Yeni kullanıcı oluştur
+    const newUser = new User({ UserName, UserMail, UserPassword });
+    await newUser.save();
 
-      await newUser.save();
-
-      res.status(200).json({ message: 'Kayıt başarılı. Artık giriş yapabilirsiniz.' });
+    return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.' });
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Kayıt işlemi sırasında bir hata oluştu.' });
+    return res.status(500).json({ message: 'Kayıt sırasında bir hata oluştu.' });
   }
 };
+
 
 
 // Kullanıcıyı e-posta ve şifre ile giriş yap
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  try {
-      // Kullanıcıyı bul
-      const user = await User.findOne({ UserMail: email });
+    const { UserMail, UserPassword } = req.body;  // req.body'den gelen verileri kontrol et
+  
+    if (!UserMail || !UserPassword) {
+      return res.status(400).json({ message: 'E-posta ve şifre gereklidir.' });
+    }
+  
+    try {
+      // Kullanıcıyı bul ve şifreyi karşılaştır
+      const user = await User.findOne({ UserMail });
       if (!user) {
-          console.log(`Kullanıcı bulunamadı: ${email}`);
-          return res.status(400).json({ message: 'E-posta veya şifre hatalı.' });
+        console.log(`Kullanıcı bulunamadı: ${UserMail}`);
+        return res.status(400).json({ message: 'E-posta veya şifre hatalı.' });
       }
-
-      // Şifreyi kontrol et
-      const isMatch = await bcrypt.compare(password, user.UserPassword);
+  
+      const isMatch = await bcrypt.compare(UserPassword, user.UserPassword);
       if (!isMatch) {
-          console.log(`Şifre uyuşmadı: Girilen şifre: ${password}, Veritabanındaki şifre: ${user.UserPassword}`);
-          return res.status(400).json({ message: 'E-posta veya şifre hatalı.' });
+        return res.status(400).json({ message: 'E-posta veya şifre hatalı.' });
       }
-
-      // JWT token oluştur
-      const token = jwt.sign(
-          { userId: user._id, name: user.UserName }, 
-          process.env.JWT_SECRET_KEY as string,
-          { expiresIn: '1h' }
-      );
-      
+  
+      // Başarılı giriş işlemi
+      const token = jwt.sign({ userId: user._id, name: user.UserName }, 'your_jwt_secret_key', {
+        expiresIn: '1h',
+      });
+  
       res.status(200).json({ message: 'Giriş başarılı.', token });
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Giriş işlemi sırasında bir hata oluştu.' });
-  }
-};
+    }
+  };
+  

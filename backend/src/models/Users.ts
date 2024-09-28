@@ -20,10 +20,14 @@ const UserSchema: Schema = new Schema(
 );
 
 // Şifre hashleme işlemi, kaydetmeden önce (pre-save hook)
+// Şifre hashleme işlemi, kaydetmeden önce (pre-save hook)
 UserSchema.pre<IUser>('save', async function (next) {
-  // Eğer şifre değiştirilmediyse, hashleme işlemini atla
   if (!this.isModified('UserPassword')) {
-    return next();
+    return next();  // Şifre değiştirilmemişse işlemi atla
+  }
+
+  if (!this.UserPassword) {
+    return next(new Error("UserPassword is required for hash operation."));  // Şifre boşsa hata döndür
   }
 
   try {
@@ -31,10 +35,11 @@ UserSchema.pre<IUser>('save', async function (next) {
     this.UserPassword = await bcrypt.hash(this.UserPassword, salt);  // Şifreyi hashleme
     next();
   } catch (error) {
-    console.log("Hashleme hatası ", error);
-    next(error as CallbackError);  // Hatayı işleme al, mongoose işlemi durdursun
+    console.log("Hashleme hatası:", error);
+    next(error as CallbackError);   // Hata durumunda next'e hata döndürülmeli
   }
 });
+
 
 
 // Şifreyi karşılaştırma yöntemi
