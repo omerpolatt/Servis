@@ -18,7 +18,7 @@ export const mailControl = async (req: Request, res: Response) => {
       }
 
       // Doğrulama kodu oluştur ve kullanıcıya gönder
-      const verificationCode = await sendVerificationCode(email);
+      const code = await sendVerificationCode(email);
 
       res.status(200).json({ message: 'Doğrulama kodu gönderildi. Lütfen e-postanızı kontrol edin.' });
   } catch (error) {
@@ -29,7 +29,7 @@ export const mailControl = async (req: Request, res: Response) => {
 
 // Doğrulama kodunu kontrol et
 export const verifyCode = async (req: Request, res: Response) => {
-  const { email, verificationCode } = req.body;
+  const { email, code } = req.body;
 
   try {
       // E-posta doğrulandıysa
@@ -89,7 +89,7 @@ export const loginUser = async (req: Request, res: Response) => {
       }
   
       // Başarılı giriş işlemi
-      const token = jwt.sign({ userId: user._id, name: user.UserName }, 'your_jwt_secret_key', {
+      const token = jwt.sign({ userId: user._id, name: user.UserName , email:user.UserMail }, 'your_jwt_secret_key', {
         expiresIn: '1h',
       });
   
@@ -98,4 +98,20 @@ export const loginUser = async (req: Request, res: Response) => {
       res.status(500).json({ message: 'Giriş işlemi sırasında bir hata oluştu.' });
     }
   };
+  
+
+  export const logoutUser = async (req: Request, res: Response) => {
+    try {
+        // Cookie'deki token'ı temizliyoruz
+        res.clearCookie('token', {
+            httpOnly: true, // XSS saldırılarına karşı koruma
+            secure: process.env.NODE_ENV === 'production', // HTTPS kullanıyorsanız secure:true yapın
+            sameSite: 'strict', // CSRF saldırılarına karşı koruma
+        });
+        res.status(200).json({ message: 'Başarıyla çıkış yapıldı.' });
+    } catch (error) {
+        console.error('Çıkış işlemi sırasında hata:', error);
+        res.status(500).json({ message: 'Çıkış işlemi sırasında bir hata oluştu.' });
+    }
+};
   

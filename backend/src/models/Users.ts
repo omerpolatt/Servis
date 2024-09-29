@@ -19,7 +19,7 @@ const UserSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Şifre hashleme işlemi, kaydetmeden önce (pre-save hook)
+
 // Şifre hashleme işlemi, kaydetmeden önce (pre-save hook)
 UserSchema.pre<IUser>('save', async function (next) {
   if (!this.isModified('UserPassword')) {
