@@ -22,7 +22,6 @@ export const sendVerificationCode = async (email: string) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Doğrulama kodu başarıyla gönderildi.');
     return code;  // Kod geri döndürülür, böylece saklanabilir
   } catch (error) {
     console.error('E-posta gönderme hatası:', error);
