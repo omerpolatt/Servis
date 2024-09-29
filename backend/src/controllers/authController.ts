@@ -4,21 +4,24 @@ import bcrypt from 'bcrypt';
 import User from '../models/Users'; 
 import { sendVerificationCode } from '../services/emailService';
 import dotenv from 'dotenv';
+import fs from 'fs-extra'; // fs-extra modülü ile klasör işlemleri
+import path from 'path'; // Klasör yollarını daha düzgün oluşturmak için
+import mongoose from 'mongoose';
 
 dotenv.config();
 
 export const mailControl = async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { UserMail } = req.body;
 
   try {
       // E-posta zaten kayıtlı mı kontrol et
-      const userExists = await User.findOne({ UserMail: email });
+      const userExists = await User.findOne({ UserMail: UserMail });
       if (userExists) {
           return res.status(400).json({ message: 'Bu e-posta ile zaten kayıt olunmuş.' });
       }
 
       // Doğrulama kodu oluştur ve kullanıcıya gönder
-      const code = await sendVerificationCode(email);
+      const code = await sendVerificationCode(UserMail);
 
       res.status(200).json({ message: 'Doğrulama kodu gönderildi. Lütfen e-postanızı kontrol edin.' });
   } catch (error) {
@@ -29,7 +32,7 @@ export const mailControl = async (req: Request, res: Response) => {
 
 // Doğrulama kodunu kontrol et
 export const verifyCode = async (req: Request, res: Response) => {
-  const { email, code } = req.body;
+  const { UserMail, code } = req.body;
 
   try {
       // E-posta doğrulandıysa
@@ -58,6 +61,14 @@ export const registerUser = async (req: Request, res: Response) => {
     // Yeni kullanıcı oluştur
     const newUser = new User({ UserName, UserMail, UserPassword });
     await newUser.save();
+
+    // Kullanıcı ID'sine göre klasör oluştur
+    const userId = newUser._id as mongoose.Types.ObjectId; // ObjectId türünü kullanarak _id'yi doğru tanımlıyoruz.
+    const userDir = path.join(__dirname, '..', 'storage', userId.toString());  // Klasör yolu
+    
+    // Klasör oluştur (zaten varsa hata vermez)
+    await fs.ensureDir(userDir);
+    console.log(`Klasör başarıyla oluşturuldu: ${userDir}`);
 
     return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.' });
   } catch (error) {

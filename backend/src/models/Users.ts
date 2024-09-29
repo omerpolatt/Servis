@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document , CallbackError } from 'mongoose';
+import mongoose, { Schema, Document , CallbackError, Types } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 // Kullanıcı arayüzü
@@ -6,6 +6,7 @@ export interface IUser extends Document {
   UserName: string;
   UserMail: string;
   UserPassword: string;
+  _id: Types.ObjectId;
   comparePassword: (password: string) => Promise<boolean>;  // Şifreyi karşılaştırmak için bir yöntem
 }
 
