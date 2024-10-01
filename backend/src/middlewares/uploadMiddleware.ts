@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
     // Kullanıcıya özel klasör yolu
     const dir = path.join(__dirname, `../../uploads/${userId}`);
 
-    // Eğer klasör yoksa hata döndürüyoruz, artık klasör oluşturmuyoruz
+    // Eğer klasör yoksa hata döndürüyoruz
     if (!fs.existsSync(dir)) {
         return cb(new Error("Kullanıcı klasörü bulunamadı. Lütfen önce kaydolun."), ""); // Hata döndürülüyor
       }

@@ -1,20 +1,14 @@
-import express from 'express';
-import { upload } from '../middlewares/uploadMiddleware'; // Yükleme middleware'i
-import { listUserFiles , deleteUserFile } from '../controllers/fileController'; // Listeleme controller'ı
+import { Router } from 'express';
+import { uploadFile } from '../controllers/fileController';  // Dosya yükleme controller'ı
+import multer from 'multer';  // Multer'i burada doğrudan kullanıyoruz
+import { authMiddleware } from '../middlewares/AuthMiddlewares';  // Kullanıcının doğrulanması için gerekli middleware
 
+const router = Router();
 
-const router = express.Router();
+// Multer middleware'i: Dosyayı bellekte tutma yöntemi (memoryStorage)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-// Dosya yükleme route'u
-router.post('/upload', upload, (req, res) => {
-  res.status(200).json({ message: 'Dosya başarıyla yüklendi.' });
-});
-
-// Kullanıcının dosyalarını listeleyen route
-router.get('/',  listUserFiles);
-
-// Kullanıcının dosyasını silen route
-router.delete('/:filename', deleteUserFile);
-
+router.post('/upload', authMiddleware, upload.single('file'), uploadFile);  // Dosya yükleme işlemi
 
 export default router;

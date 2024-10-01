@@ -21,7 +21,7 @@ export const mailControl = async (req: Request, res: Response) => {
       }
 
       // Doğrulama kodu oluştur ve kullanıcıya gönder
-      const code = await sendVerificationCode(UserMail);
+      const verificationCode = await sendVerificationCode(UserMail);
 
       res.status(200).json({ message: 'Doğrulama kodu gönderildi. Lütfen e-postanızı kontrol edin.' });
   } catch (error) {
@@ -32,7 +32,7 @@ export const mailControl = async (req: Request, res: Response) => {
 
 // Doğrulama kodunu kontrol et
 export const verifyCode = async (req: Request, res: Response) => {
-  const { UserMail, code } = req.body;
+  const { UserMail, verificationCode } = req.body;
 
   try {
       // E-posta doğrulandıysa
@@ -100,9 +100,10 @@ export const loginUser = async (req: Request, res: Response) => {
       }
   
       // Başarılı giriş işlemi
-      const token = jwt.sign({ userId: user._id, name: user.UserName , email:user.UserMail }, 'your_jwt_secret_key', {
+      const token = jwt.sign({ userId: user._id, name: user.UserName, email: user.UserMail }, process.env.JWT_SECRET_KEY || 'U38niWorkHUbSeCuRity', {
         expiresIn: '1h',
       });
+      
   
       res.status(200).json({ message: 'Giriş başarılı.', token });
     } catch (error) {
