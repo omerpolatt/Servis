@@ -62,12 +62,14 @@ export const registerUser = async (req: Request, res: Response) => {
     const newUser = new User({ UserName, UserMail, UserPassword });
     await newUser.save();
 
-    // Kullanıcı ID'sine göre bucket oluşturulacak yol (WSL içinde Windows yolu kullanıyoruz)
-    const userId = newUser._id as mongoose.Types.ObjectId; // ObjectId türünü kullanarak _id'yi doğru tanımlıyoruz.
-    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', userId.toString());  // WSL içinde Windows klasör yolu
+  // Kullanıcı ID'sine ve kullanıcı adına göre bucket oluşturulacak yol (WSL içinde Windows yolu kullanıyoruz)
+  const userId = newUser._id as mongoose.Types.ObjectId;
+  const formattedUserName = UserName.replace(/\s+/g, '_');  // Kullanıcı adındaki boşlukları "_" ile değiştir
+  const folderName = `${userId}_${formattedUserName}`;  // ID ve kullanıcı adını birleştirerek klasör ismi oluştur
+  const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', folderName);  // Klasör yolu
 
-    // Klasör yolunu terminale yazdır ve kontrol et
-    console.log(`Bucket oluşturulacak yol: ${bucketPath}`);
+  // Klasör yolunu terminale yazdır ve kontrol et
+  console.log(`Bucket oluşturulacak yol: ${bucketPath}`);
 
     // Klasör oluştur (zaten varsa hata vermez)
     try {
