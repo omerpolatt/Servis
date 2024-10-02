@@ -62,19 +62,36 @@ export const registerUser = async (req: Request, res: Response) => {
     const newUser = new User({ UserName, UserMail, UserPassword });
     await newUser.save();
 
-    // Kullanıcı ID'sine göre klasör oluştur
+    // Kullanıcı ID'sine göre bucket oluşturulacak yol (WSL içinde Windows yolu kullanıyoruz)
     const userId = newUser._id as mongoose.Types.ObjectId; // ObjectId türünü kullanarak _id'yi doğru tanımlıyoruz.
-    const userDir = path.join(__dirname, '..', 'storage', userId.toString());  // Klasör yolu
-    
+    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', userId.toString());  // WSL içinde Windows klasör yolu
+
+    // Klasör yolunu terminale yazdır ve kontrol et
+    console.log(`Bucket oluşturulacak yol: ${bucketPath}`);
+
     // Klasör oluştur (zaten varsa hata vermez)
-    await fs.ensureDir(userDir);
-    console.log(`Klasör başarıyla oluşturuldu: ${userDir}`);
+    try {
+      await fs.ensureDir(bucketPath); // Klasör oluşturma işlemi
+      console.log(`Klasör başarıyla oluşturuldu: ${bucketPath}`);
+      
+      // Klasör gerçekten oluşturuldu mu kontrol edelim
+      const exists = await fs.pathExists(bucketPath);
+      if (exists) {
+        console.log(`Klasör gerçekten mevcut: ${bucketPath}`);
+      } else {
+        console.log(`Klasör oluşturulamadı: ${bucketPath}`);
+      }
+    } catch (folderError) {
+      console.error(`Klasör oluşturma sırasında hatası`)
+    }
 
     return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.' });
   } catch (error) {
+    console.error('Kayıt sırasında hata oluştu:', error);
     return res.status(500).json({ message: 'Kayıt sırasında bir hata oluştu.' });
   }
 };
+
 
 
 
