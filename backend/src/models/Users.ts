@@ -6,16 +6,27 @@ export interface IUser extends Document {
   UserMail: string;
   UserPassword: string;
   _id: Types.ObjectId;
+  buckets: { bucketId: Types.ObjectId; bucketName: string }[];  // Bucket referanslarının listesi
 }
 
 // Kullanıcı şeması
 const UserSchema: Schema = new Schema(
   {
-    UserName: { type: String },
-    UserMail: { type: String, unique: true }, // E-posta adresinin benzersiz (unique) olması
-    UserPassword: { type: String },
+    UserName: { type: String, required: true, trim: true },  // Kullanıcı adı zorunlu ve boşluklar temizlenecek
+    UserMail: { 
+      type: String, 
+      unique: true, 
+      required: true, 
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/  // E-posta formatı kontrolü
+    }, 
+    UserPassword: { type: String, required: true },  // Şifre zorunlu
+    buckets: [{ 
+      bucketId: { type: Schema.Types.ObjectId, ref: 'Bucket' },  // Bucket ID'si
+      bucketName: { type: String }  // Bucket ismi
+    }]
   },
-  { timestamps: true }
+    
+  { timestamps: true }  
 );
 
 // Model oluşturma

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { mailControl, verifyCode, registerUser, loginUser , logoutUser } from '../controllers/authController';
+import { mailControl, verifyCode, registerUser, loginUser , logoutUser } from '../controllers/UserController';
 
 const router = Router();
 
