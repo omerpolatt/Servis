@@ -4,18 +4,17 @@ import bcrypt from 'bcrypt';
 import User from '../models/Users'; 
 import { sendVerificationCode } from '../services/emailService';
 import dotenv from 'dotenv';
-import fs from 'fs-extra'; // fs-extra modülü ile klasör işlemleri
-import path from 'path'; // Klasör yollarını daha düzgün oluşturmak için
 import mongoose from 'mongoose';
 
 dotenv.config();
 
+// E-posta kontrol ve doğrulama kodu gönderme
 export const mailControl = async (req: Request, res: Response) => {
   const { UserMail } = req.body;
 
   try {
     // E-posta zaten kayıtlı mı kontrol et
-    const userExists = await User.findOne({ UserMail: UserMail });
+    const userExists = await User.findOne({ UserMail });
     if (userExists) {
       return res.status(400).json({ message: 'Bu e-posta ile zaten kayıt olunmuş.' });
     }
@@ -69,18 +68,6 @@ export const registerUser = async (req: Request, res: Response) => {
       UserPassword: hashedPassword,  // Hashlenmiş şifreyi kaydediyoruz
     });
     await newUser.save();
-
-    // Kullanıcı ID'sine ve kullanıcı adına göre bucket oluşturulacak yol
-    const userId = newUser._id as mongoose.Types.ObjectId;
-    const formattedUserName = UserName.replace(/\s+/g, '_');  // Kullanıcı adındaki boşlukları "_" ile değiştir
-    const folderName = `${userId}_${formattedUserName}`;  // ID ve kullanıcı adını birleştirerek klasör ismi oluştur
-    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', folderName);  // Klasör yolu
-
-    console.log(`Bucket oluşturulacak yol: ${bucketPath}`);
-
-    // Klasör oluştur (zaten varsa hata vermez)
-    await fs.ensureDir(bucketPath);
-    console.log(`Klasör başarıyla oluşturuldu: ${bucketPath}`);
 
     return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.' });
   } catch (error) {
