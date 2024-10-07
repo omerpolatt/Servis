@@ -9,7 +9,7 @@ export interface IBucket extends Document {
 }
 
 const BucketSchema: Schema = new Schema({
-  bucketName: { type: String, required: true },
+  bucketName: { type: String, required: true , unique:true},
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   accessKey: { type: String, required: true },
   path: { type: String, required: true },  
