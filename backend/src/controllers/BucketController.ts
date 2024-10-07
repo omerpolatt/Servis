@@ -37,26 +37,27 @@ export const createBucket = async (req: Request, res: Response) => {
     // Benzersiz bir access key oluştur
     const accessKey = crypto.randomBytes(16).toString('hex');  // Rastgele 16 baytlık bir anahtar
 
+    // Bucket için dosya sisteminde oluşturulacak yolu belirle
+    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', `${sanitizedBucketName}`);
+
+    // Dosya sisteminde klasör oluştur
+    await fs.ensureDir(bucketPath);
+
     // Yeni bucket oluştur
     const newBucket = new Bucket({
       bucketName: sanitizedBucketName,
       owner: user._id,
       accessKey: accessKey,  // Benzersiz access key
+      path: bucketPath,  // Bucket için dosya yolu
     });
     await newBucket.save();
 
-   // Kullanıcının bucket'larına ekle
+    // Kullanıcının bucket'larına ekle
     user.buckets.push({
-    bucketId: newBucket._id as mongoose.Types.ObjectId,
-    bucketName: newBucket.bucketName
-  });
-  await user.save();
-
-    // Kullanıcı ID'sini kullanarak dosya sisteminde bucket klasörü oluştur
-    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', `${sanitizedBucketName}`);
-    
-    // Klasör yoksa oluştur (fs-extra ile klasör oluşturma)
-    await fs.ensureDir(bucketPath);
+      bucketId: newBucket._id as mongoose.Types.ObjectId,
+      bucketName: newBucket.bucketName
+    });
+    await user.save();
 
     return res.status(200).json({ message: 'Bucket başarıyla oluşturuldu.', bucket: newBucket });
   } catch (error) {
