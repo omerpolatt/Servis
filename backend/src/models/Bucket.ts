@@ -1,22 +1,19 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { IUser } from './Users';
 
-// Bucket arayüzü
 export interface IBucket extends Document {
   bucketName: string;
-  owner: IUser['_id'];  // Bu bucket'ın sahibi olan kullanıcı
+  owner: mongoose.Types.ObjectId;
   accessKey: string;
+  subfolders: mongoose.Types.ObjectId[]; // alt klasörleri gösteriyoruz 
+  path: string;  // Dosya sistemindeki yol
 }
 
-// Bucket modeli şeması
-const BucketSchema: Schema = new Schema(
-  {
-    bucketName: { type: String, required: true, trim: true },  // Zorunlu ve boşluklardan arındırılmış
-    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },  // Kullanıcı referansı zorunlu
-    accessKey: { type: String, required: true, unique: true },  // Benzersiz erişim anahtarı
-  },
-  { timestamps: true }  // Zaman damgası eklendi
-);
+const BucketSchema: Schema = new Schema({
+  bucketName: { type: String, required: true },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  accessKey: { type: String, required: true },
+  path: { type: String, required: true },  
+  subfolders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Subfolder' }]
+});
 
-// Modeli dışa aktar
 export const Bucket = mongoose.model<IBucket>('Bucket', BucketSchema);
