@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 import crypto from 'crypto';  // Benzersiz erişim anahtarı oluşturmak için
 import User from '../models/Users';  // Kullanıcı modeli
 import { Project } from '../models/Project';  // Bucket, artık Project oldu
-import { Bucket } from '../models/Bucket';  // Subbucket, artık Bucket oldu
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -40,7 +39,7 @@ export const createProject = async (req: Request, res: Response) => {
     const accessKey = crypto.randomBytes(16).toString('hex');  // Rastgele 16 baytlık bir anahtar
 
     // Proje için dosya sisteminde oluşturulacak yolu belirle
-    const projectPath = path.join('/mnt/c/Users/cakir/OneDrive/Masaüstü/Uploads', `${sanitizedProjectName}`);
+    const projectPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', `${sanitizedProjectName}`);
 
     // Dosya sisteminde klasör oluştur
     await fs.ensureDir(projectPath);

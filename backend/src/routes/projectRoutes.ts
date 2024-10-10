@@ -6,10 +6,10 @@ const router = Router();
 
 router.post('/create', createProject);  
 
-router.delete('/:bucketId', deleteProject);  
+router.delete('/:projectId', deleteProject);  
 
 
-router.patch('/:bucketId', updateProjectName);  
+router.patch('/:projectId', updateProjectName);  
 
 router.get('/list', listUserProjects);  
 
