@@ -1,19 +1,19 @@
-import { Subbucket } from '../models/Bucket';
+import { Bucket } from '../models/Bucket';  // Subbucket yerine Bucket oldu
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import fs from 'fs-extra';
 import path from 'path';
-import { Bucket } from '../models/Project';
+import { Project } from '../models/Project';  // Bucket yerine Project oldu
 import User from '../models/Users';  // Kullanıcı modeli
 import mongoose from 'mongoose';
 
-// Alt klasör oluşturma fonksiyonu
-export const createSubbucket = async (req: Request, res: Response) => {
-  const { subFolderName, parentBucketAccessKey } = req.body;
+// Bucket (alt klasör) oluşturma fonksiyonu
+export const createBucket = async (req: Request, res: Response) => {
+  const { bucketName, parentProjectAccessKey } = req.body;  // Alt klasör adı ve ana projenin access key'i
   const token = req.header('Authorization')?.split(' ')[1]; // Kullanıcı token'ı
 
-  if (!subFolderName || !parentBucketAccessKey || !token) {
-    return res.status(400).json({ message: 'Alt klasör adı, ana bucket access key ve token gereklidir.' });
+  if (!bucketName || !parentProjectAccessKey || !token) {
+    return res.status(400).json({ message: 'Bucket adı, ana proje access key ve token gereklidir.' });
   }
 
   try {
@@ -26,80 +26,80 @@ export const createSubbucket = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Ana bucket'ı accessKey ile bul
-    const parentBucket = await Bucket.findOne({ accessKey: parentBucketAccessKey, owner: user._id });
+    // Ana proje erişim anahtarı ile projeyi bul
+    const parentProject = await Project.findOne({ accessKey: parentProjectAccessKey, owner: user._id });
 
-    if (!parentBucket) {
-      return res.status(404).json({ message: 'Ana bucket bulunamadı ya da yetkiniz yok.' });
+    if (!parentProject) {
+      return res.status(404).json({ message: 'Ana proje bulunamadı ya da yetkiniz yok.' });
     }
 
-    // `parentBucket.path` kontrolü
-    if (!parentBucket.path) {
-      return res.status(400).json({ message: 'Ana bucket yol bilgisi eksik.' });
+    // `parentProject.path` kontrolü
+    if (!parentProject.path) {
+      return res.status(400).json({ message: 'Ana proje yol bilgisi eksik.' });
     }
 
-    // Aynı isimde bir alt klasör var mı kontrol et
-    const existingSubbucket = await Subbucket.findOne({ subFolderName, bucketId: parentBucket._id });
-    if (existingSubbucket) {
-      return res.status(400).json({ message: 'Bu isimde bir alt klasör zaten mevcut.' });
+    // Aynı isimde bir bucket var mı kontrol et
+    const existingBucket = await Bucket.findOne({ bucketName, projectId: parentProject._id });
+    if (existingBucket) {
+      return res.status(400).json({ message: 'Bu isimde bir bucket zaten mevcut.' });
     }
 
-    // Alt klasör için accessKey oluştur
-    const subbucketAccessKey = jwt.sign(
-      { subFolderName },
+    // Bucket için accessKey oluştur
+    const bucketAccessKey = jwt.sign(
+      { bucketName },
       process.env.JWT_SECRET_KEY || 'default_secret_key',
       { expiresIn: '7d' }
     );
 
-    // Alt klasör için dosya sisteminde yol oluştur
-    const subbucketPath = path.join(parentBucket.path, subFolderName);
+    // Bucket için dosya sisteminde yol oluştur
+    const bucketPath = path.join(parentProject.path, bucketName);
 
-    // Dosya sisteminde alt klasörü oluştur
-    await fs.ensureDir(subbucketPath);
-    console.log(`Alt klasör başarıyla oluşturuldu: ${subbucketPath}`);
+    // Dosya sisteminde bucket oluştur
+    await fs.ensureDir(bucketPath);
+    console.log(`Bucket başarıyla oluşturuldu: ${bucketPath}`);
 
-    // Yeni alt klasör modelini oluştur
-    const newSubbucket = new Subbucket({
-      subFolderName,
-      accessKey: subbucketAccessKey,
-      bucketId: parentBucket._id,
-      path: subbucketPath,
+    // Yeni bucket modelini oluştur
+    const newBucket = new Bucket({
+      bucketName,
+      accessKey: bucketAccessKey,
+      projectId: parentProject._id, // Projeye bağlı bucket
+      path: bucketPath,
     });
 
-    // Yeni alt klasörü veritabanına kaydet
-    await newSubbucket.save();
+    // Yeni bucket'ı veritabanına kaydet
+    await newBucket.save();
 
-    // Bucket'ın subfolders alanına alt klasör ID ve ismi ile ekle
-    parentBucket.subfolders.push({
-      subFolderId: newSubbucket._id as mongoose.Types.ObjectId,
-      subFolderName: newSubbucket.subFolderName
+    // Projenin bucket listesine bu bucket'ı ekle
+    parentProject.bucket.push({
+      bucketId: newBucket._id as mongoose.Types.ObjectId,
+      bucketName: newBucket.bucketName
     });
 
-    // Bucket'ı güncelle ve kaydet
-    await parentBucket.save();
+    // Projeyi güncelle ve kaydet
+    await parentProject.save();
 
     return res.status(201).json({
-      message: 'Alt klasör başarıyla oluşturuldu ve bucket alt klasör listesine eklendi.',
-      subbucket: newSubbucket,
-      folderPath: subbucketPath,
-      subbucketAccessKey,
+      message: 'Bucket başarıyla oluşturuldu ve proje alt bucket listesine eklendi.',
+      bucket: newBucket,
+      folderPath: bucketPath,
+      bucketAccessKey,
     });
   } catch (error) {
     if (typeof error === 'object' && (error as any).name === 'JsonWebTokenError') {
       return res.status(401).json({ message: 'Geçersiz token.' });
     }
-    console.error('Alt klasör oluşturulurken hata oluştu:', error);
-    return res.status(500).json({ message: 'Alt klasör oluşturulurken bir hata oluştu.' });
+    console.error('Bucket oluşturulurken hata oluştu:', error);
+    return res.status(500).json({ message: 'Bucket oluşturulurken bir hata oluştu.' });
   }
 };
 
-
-export const listSubbuckets = async (req: Request, res: Response) => {
-  const { parentBucketId } = req.params;
+// Bucket'ları listeleme fonksiyonu
+export const listBuckets = async (req: Request, res: Response) => {
+  const { parentProjectId } = req.params;
   const token = req.header('Authorization')?.split(' ')[1]; // Kullanıcı token'ı
 
-  if (!parentBucketId || !token) {
-    return res.status(400).json({ message: 'Ana bucket ID ve token gereklidir.' });
+  if (!parentProjectId || !token) {
+    return res.status(400).json({ message: 'Ana proje ID ve token gereklidir.' });
   }
 
   try {
@@ -112,17 +112,60 @@ export const listSubbuckets = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Kullanıcının sahip olduğu ana bucket'ı doğrula
-    const parentBucket = await Bucket.findOne({ _id: parentBucketId, owner: user._id });
-    if (!parentBucket) {
-      return res.status(404).json({ message: 'Ana bucket bulunamadı ya da yetkiniz yok.' });
+    // Kullanıcının sahip olduğu ana projeyi doğrula
+    const parentProject = await Project.findOne({ _id: parentProjectId, owner: user._id });
+    if (!parentProject) {
+      return res.status(404).json({ message: 'Ana proje bulunamadı ya da yetkiniz yok.' });
     }
 
-    // Subbucket'ları listele
-    const subbuckets = await Subbucket.find({ bucketId: parentBucket._id });
-    return res.status(200).json({ subbuckets });
+    // Bucket'ları listele
+    const buckets = await Bucket.find({ projectId: parentProject._id });
+    return res.status(200).json({ buckets });
   } catch (error) {
-    console.error('Subbucket\'lar listelenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Subbucket\'lar listelenirken bir hata oluştu.' });
+    console.error('Bucket\'lar listelenirken hata oluştu:', error);
+    return res.status(500).json({ message: 'Bucket\'lar listelenirken bir hata oluştu.' });
+  }
+};
+
+// Bucket (alt klasör) silme fonksiyonu
+export const deleteBucket = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const token = req.header('Authorization')?.split(' ')[1];
+
+  if (!id || !token) {
+    return res.status(400).json({ message: 'Bucket ID ve token gereklidir.' });
+  }
+
+  try {
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY || 'default_secret_key') as { email: string };
+    const user = await User.findOne({ UserMail: decodedToken.email });
+    if (!user) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    const bucket = await Bucket.findById(id);
+    if (!bucket) {
+      return res.status(404).json({ message: 'Bucket bulunamadı.' });
+    }
+
+    const project = await Project.findOne({ _id: bucket.projectId, owner: user._id });
+    if (!project) {
+      return res.status(404).json({ message: 'Yetkiniz yok veya ana proje bulunamadı.' });
+    }
+
+    // Dosya sistemindeki bucket'ı sil
+    await fs.remove(bucket.path);
+    console.log(`Bucket başarıyla dosya sisteminden silindi: ${bucket.path}`);
+
+    // Veritabanından bucket'ı sil
+    await Bucket.findByIdAndDelete(id);
+
+    // İlgili projenin buckets alanından bucket'ı sil
+    await Project.updateOne({ _id: bucket.projectId }, { $pull: { buckets: { bucketId: id } } });
+
+    return res.status(200).json({ message: 'Bucket başarıyla silindi ve dosya sisteminden kaldırıldı.' });
+  } catch (error) {
+    console.error('Bucket silme hatası:', error);
+    return res.status(500).json({ message: 'Bucket silme işlemi sırasında hata oluştu.' });
   }
 };

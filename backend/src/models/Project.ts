@@ -1,27 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IBucket extends Document {
-  bucketName: string;
+export interface IProject extends Document {
+  projectName: string;
   owner: mongoose.Types.ObjectId;
   accessKey: string;
-  subfolders: { 
-    subFolderId: mongoose.Types.ObjectId; 
-    subFolderName: string; 
+  bucket: { 
+    bucketId: mongoose.Types.ObjectId; 
+    bucketName: string; 
   }[]; // Alt klasörleri hem ID hem de isimle göstereceğiz
   path: string;  // Dosya sistemindeki yol
 }
 
-const BucketSchema: Schema = new Schema({
-  bucketName: { type: String, required: true },
+const ProjectSchema: Schema = new Schema({
+  projectName: { type: String, required: true },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   accessKey: { type: String, required: true },
   path: { type: String, required: true },
-  subfolders: [
+ bucket: [
     {
-      subFolderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subfolder' }, // Subfolder ID
-      subFolderName: { type: String } // Subfolder adı
+      bucketId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bucket' }, 
+      bucketName: { type: String } 
     }
   ]
 });
 
-export const Bucket = mongoose.model<IBucket>('Bucket', BucketSchema);
+export const Project = mongoose.model<IProject>('Project', ProjectSchema);

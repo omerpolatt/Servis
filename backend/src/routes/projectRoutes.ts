@@ -1,18 +1,16 @@
 import { Router } from 'express';
-import { createBucket, deleteBucket, updateBucketName, listUserBuckets } from '../controllers/ProjectController';  // Controller fonksiyonları
+import { createProject, deleteProject , updateProjectName , listUserProjects , getProjectById } from '../controllers/ProjectController';  
 
 const router = Router();
 
-// Bucket oluşturma rotası
-router.post('/create', createBucket);  // Kullanıcının bucket oluşturmasına izin veren rota
 
-// Bucket silme rotası
-router.delete('/:bucketId', deleteBucket);  // Bucket ID'ye göre silme işlemi
+router.post('/create', createProject);  
 
-// Bucket güncelleme (PUT/PATCH) rotası
-router.patch('/:bucketId', updateBucketName);  // Bucket adını güncelleyen rota
+router.delete('/:bucketId', deleteProject);  
 
-// Kullanıcıya ait bucket'ları listeleme rotası
-router.get('/list', listUserBuckets);  // Kullanıcının tüm bucket'larını listeleyen rota
+
+router.patch('/:bucketId', updateProjectName);  
+
+router.get('/list', listUserProjects);  
 
 export default router;

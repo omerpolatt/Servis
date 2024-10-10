@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadFile , listFiles, deleteFile } from '../controllers/FileController';  // Dosya yükleme controller'ı
+import { uploadFile , listFilesByBucket, deleteFile } from '../controllers/FileController';  // Dosya yükleme controller'ı
 import multer from 'multer';  // Multer'i burada doğrudan kullanıyoruz
 import { authMiddleware } from '../middlewares/AuthMiddlewares';  // Kullanıcının doğrulanması için gerekli middleware
 
@@ -12,7 +12,7 @@ const upload = multer({ storage });
 router.post('/upload', authMiddleware, upload.single('file'), uploadFile);  // Dosya yükleme işlemi
 
 // Dosya listeleme
-router.get('/files', listFiles);
+router.get('/files', listFilesByBucket);
 
 // Dosya silme
 router.delete('/files/:fileName', deleteFile);

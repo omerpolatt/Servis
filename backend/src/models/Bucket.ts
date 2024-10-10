@@ -1,19 +1,19 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-interface ISubbucket extends Document {
-    subFolderName: string;
+interface IBucket extends Document {
+    bucketName: string;
     accessKey: string;
-    bucketId: mongoose.Schema.Types.ObjectId;
+    projectId: mongoose.Schema.Types.ObjectId;
     path: string;
 }
 
 // Şema tanımı
-const SubbucketSchema: Schema = new Schema({
-    subFolderName: { type: String, required: true },  // Alt klasör adı
+const BucketSchema: Schema = new Schema({
+    bucketName: { type: String, required: true },  // Alt klasör adı
     accessKey: { type: String, required: true },  // Erişim anahtarı
-    bucketId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bucket', required: true },  // Hangi bucket'a ait olduğu
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },  
     path: { type: String, required: true },  // Alt klasörün tam dosya yolu
 });
 
 // Model tanımı
-export const Subbucket = mongoose.model<ISubbucket>('Subbucket', SubbucketSchema);
+export const Bucket = mongoose.model<IBucket>('Bucket', BucketSchema);

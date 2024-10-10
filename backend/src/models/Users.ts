@@ -1,15 +1,13 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-// Kullanıcı arayüzü
 export interface IUser extends Document {
   UserName: string;
   UserMail: string;
   UserPassword: string;
   _id: Types.ObjectId;
-  buckets: { bucketId: Types.ObjectId; bucketName: string }[];  // Bucket referanslarının listesi
+  projects: { projectId: Types.ObjectId; projectName: string }[]; 
 }
 
-// Kullanıcı şeması
 const UserSchema: Schema = new Schema(
   {
     UserName: { type: String, required: true, trim: true },  // Kullanıcı adı zorunlu ve boşluklar temizlenecek
@@ -20,16 +18,15 @@ const UserSchema: Schema = new Schema(
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/  // E-posta formatı kontrolü
     }, 
     UserPassword: { type: String, required: true },  // Şifre zorunlu
-    buckets: [{ 
-      bucketId: { type: Schema.Types.ObjectId, ref: 'Bucket' },  // Bucket ID'si
-      bucketName: { type: String }  // Bucket ismi
+    projects: [{ 
+      projectId: { type: Schema.Types.ObjectId, ref: 'Project' },  
+      projectName: { type: String }  
     }]
   },
     
   { timestamps: true }  
 );
 
-// Model oluşturma
 const User = mongoose.model<IUser>('User', UserSchema);
 
 export default User;

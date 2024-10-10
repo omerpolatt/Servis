@@ -5,8 +5,8 @@ import authRoutes from './routes/userRoutes';
 import cors from 'cors';
 import fileRoutes from './routes/fileRoutes';
 import { authMiddleware } from './middlewares/AuthMiddlewares';
-import bucketRoutes from './routes/projectRoutes'
-import subbucketRoutes from './routes/bucketRoutes'
+import bucketRoutes from './routes/bucketRoutes';
+import projectRoutes  from './routes/projectRoutes';
 
 
 dotenv.config() // env dosyasını okumak için
@@ -21,8 +21,8 @@ app.use(express.json()); // JSON verilerini almak için
 
 app.use('/api/auth', authRoutes);  // Kimlik doğrulama rotalarını ekle
 app.use('/api/files', authMiddleware , fileRoutes);
-app.use('/api/bucket',authMiddleware , bucketRoutes )
-app.use('/api/subfolder', authMiddleware, subbucketRoutes);
+app.use('/api/project',authMiddleware , projectRoutes )
+app.use('/api/bucket', authMiddleware, bucketRoutes);
 
 
 

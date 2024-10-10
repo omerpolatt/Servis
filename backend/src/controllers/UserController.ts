@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt';
 import User from '../models/Users'; 
 import { sendVerificationCode } from '../services/emailService';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 
 dotenv.config();
 

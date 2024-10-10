@@ -2,17 +2,19 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import crypto from 'crypto';  // Benzersiz erişim anahtarı oluşturmak için
-import User from '../models/Users';  // Eğer default export ise bu şekilde kullanılır.
-import { Bucket } from '../models/Project';
+import User from '../models/Users';  // Kullanıcı modeli
+import { Project } from '../models/Project';  // Bucket, artık Project oldu
+import { Bucket } from '../models/Bucket';  // Subbucket, artık Bucket oldu
 import fs from 'fs-extra';
 import path from 'path';
 
-export const createBucket = async (req: Request, res: Response) => {
-  const { bucketName } = req.body;
+// Proje oluşturma fonksiyonu
+export const createProject = async (req: Request, res: Response) => {
+  const { projectName } = req.body;  // Project oluşturmak için projectName alıyoruz
   const token = req.header('Authorization')?.split(' ')[1];  // Kullanıcı token'ı
   
-  if (!bucketName || !token) {
-    return res.status(400).json({ message: 'Bucket name ve token gereklidir.' });
+  if (!projectName || !token) {
+    return res.status(400).json({ message: 'Project name ve token gereklidir.' });
   }
 
   try {
@@ -25,57 +27,58 @@ export const createBucket = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Aynı kullanıcıya ait aynı isimde bir bucket olup olmadığını kontrol et
-    const existingBucket = await Bucket.findOne({ bucketName, owner: user._id });
-    if (existingBucket) {
-      return res.status(400).json({ message: 'Bu isimde bir bucket zaten mevcut.' });
+    // Aynı kullanıcıya ait aynı isimde bir proje olup olmadığını kontrol et
+    const existingProject = await Project.findOne({ projectName, owner: user._id });
+    if (existingProject) {
+      return res.status(400).json({ message: 'Bu isimde bir proje zaten mevcut.' });
     }
 
-    // Güvenli bir bucket adı oluştur (boşlukları ve özel karakterleri temizle)
-    const sanitizedBucketName = bucketName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+    // Güvenli bir proje adı oluştur (boşlukları ve özel karakterleri temizle)
+    const sanitizedProjectName = projectName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
 
     // Benzersiz bir access key oluştur
     const accessKey = crypto.randomBytes(16).toString('hex');  // Rastgele 16 baytlık bir anahtar
 
-    // Bucket için dosya sisteminde oluşturulacak yolu belirle
-    const bucketPath = path.join('/mnt/c/Users/avsro/Desktop/SPACES3', `${sanitizedBucketName}`);
+    // Proje için dosya sisteminde oluşturulacak yolu belirle
+    const projectPath = path.join('/mnt/c/Users/cakir/OneDrive/Masaüstü/Uploads', `${sanitizedProjectName}`);
 
     // Dosya sisteminde klasör oluştur
-    await fs.ensureDir(bucketPath);
+    await fs.ensureDir(projectPath);
 
-    // Yeni bucket oluştur
-    const newBucket = new Bucket({
-      bucketName: sanitizedBucketName,
+    // Yeni proje oluştur
+    const newProject = new Project({
+      projectName: sanitizedProjectName,
       owner: user._id,
       accessKey: accessKey,  // Benzersiz access key
-      path: bucketPath,  // Bucket için dosya yolu
+      path: projectPath,  // Proje için dosya yolu
     });
-    await newBucket.save();
+    await newProject.save();
 
-    // Kullanıcının bucket'larına ekle
-    user.buckets.push({
-      bucketId: newBucket._id as mongoose.Types.ObjectId,
-      bucketName: newBucket.bucketName
+    // Kullanıcının projelerine ekle
+    user.projects.push({
+      projectId: newProject._id as mongoose.Types.ObjectId,
+      projectName: newProject.projectName
     });
     await user.save();
 
-    return res.status(200).json({ message: 'Bucket başarıyla oluşturuldu.', bucket: newBucket });
+    return res.status(200).json({ message: 'Proje başarıyla oluşturuldu.', project: newProject });
   } catch (error) {
     if (typeof error === 'object' && (error as any).name === 'JsonWebTokenError') {
       return res.status(401).json({ message: 'Geçersiz token.' });
     }
 
-    console.error('Bucket oluşturulurken hata:', error);
-    return res.status(500).json({ message: 'Bucket oluşturulurken bir hata oluştu.' });
+    console.error('Proje oluşturulurken hata:', error);
+    return res.status(500).json({ message: 'Proje oluşturulurken bir hata oluştu.' });
   }
 };
 
-export const deleteBucket = async (req: Request, res: Response) => {
-  const { bucketId } = req.params;
+// Proje silme fonksiyonu
+export const deleteProject = async (req: Request, res: Response) => {
+  const { projectId } = req.params;
   const token = req.header('Authorization')?.split(' ')[1];  // Kullanıcı token'ı
 
-  if (!bucketId || !token) {
-    return res.status(400).json({ message: 'Bucket ID ve token gereklidir.' });
+  if (!projectId || !token) {
+    return res.status(400).json({ message: 'Proje ID ve token gereklidir.' });
   }
 
   try {
@@ -88,39 +91,40 @@ export const deleteBucket = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Silinmek istenen bucket'ı bul
-    const bucket = await Bucket.findOne({ _id: bucketId, owner: user._id });
-    if (!bucket) {
-      return res.status(404).json({ message: 'Bucket bulunamadı ya da yetkiniz yok.' });
+    // Silinmek istenen projeyi bul
+    const project = await Project.findOne({ _id: projectId, owner: user._id });
+    if (!project) {
+      return res.status(404).json({ message: 'Proje bulunamadı ya da yetkiniz yok.' });
     }
 
-    // Kullanıcının buckets listesinden bu bucket'ı çıkar
-    user.buckets = user.buckets.filter(b => b.bucketId.toString() !== bucketId);
+    // Kullanıcının projeler listesinden bu projeyi çıkar
+    user.projects = user.projects.filter(p => p.projectId.toString() !== projectId);
     await user.save();
 
-    // Dosya sistemindeki bucket yolunu sil
-    const bucketPath = bucket.path;
-    if (fs.existsSync(bucketPath)) {
-      await fs.remove(bucketPath);  // Dosya sisteminden klasörü sil
+    // Dosya sistemindeki proje yolunu sil
+    const projectPath = project.path;
+    if (fs.existsSync(projectPath)) {
+      await fs.remove(projectPath);  // Dosya sisteminden klasörü sil
     }
 
-    // Bucket'ı veritabanından sil
-    await Bucket.findByIdAndDelete(bucketId);  // remove() yerine findByIdAndDelete() kullanıyoruz
+    // Projeyi veritabanından sil
+    await Project.findByIdAndDelete(projectId);  // remove() yerine findByIdAndDelete() kullanıyoruz
 
-    return res.status(200).json({ message: 'Bucket başarıyla silindi.' });
+    return res.status(200).json({ message: 'Proje başarıyla silindi.' });
   } catch (error) {
-    console.error('Bucket silinirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Bucket silinirken bir hata oluştu.' });
+    console.error('Proje silinirken hata oluştu:', error);
+    return res.status(500).json({ message: 'Proje silinirken bir hata oluştu.' });
   }
 };
 
-export const updateBucketName = async (req: Request, res: Response) => {
-  const { bucketId } = req.params;
-  const { newBucketName } = req.body;  // Yeni bucket adı
+// Proje adını güncelleme fonksiyonu
+export const updateProjectName = async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+  const { newProjectName } = req.body;  // Yeni proje adı
   const token = req.header('Authorization')?.split(' ')[1];  // Kullanıcı token'ı
 
-  if (!bucketId || !newBucketName || !token) {
-    return res.status(400).json({ message: 'Bucket ID, yeni bucket adı ve token gereklidir.' });
+  if (!projectId || !newProjectName || !token) {
+    return res.status(400).json({ message: 'Proje ID, yeni proje adı ve token gereklidir.' });
   }
 
   try {
@@ -133,48 +137,49 @@ export const updateBucketName = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Mevcut bucket'ı bul
-    const bucket = await Bucket.findOne({ _id: bucketId, owner: user._id });
-    if (!bucket) {
-      return res.status(404).json({ message: 'Bucket bulunamadı ya da yetkiniz yok.' });
+    // Mevcut projeyi bul
+    const project = await Project.findOne({ _id: projectId, owner: user._id });
+    if (!project) {
+      return res.status(404).json({ message: 'Proje bulunamadı ya da yetkiniz yok.' });
     }
 
-    // Eski bucket yolunu al
-    const oldBucketPath = bucket.path;
+    // Eski proje yolunu al
+    const oldProjectPath = project.path;
 
-    // Yeni bucket adını dosya sistemine uygun hale getir (boşlukları temizle)
-    const sanitizedNewBucketName = newBucketName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+    // Yeni proje adını dosya sistemine uygun hale getir (boşlukları temizle)
+    const sanitizedNewProjectName = newProjectName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
 
-    // Yeni bucket yolunu oluştur
-    const newBucketPath = path.join(path.dirname(oldBucketPath), sanitizedNewBucketName);
+    // Yeni proje yolunu oluştur
+    const newProjectPath = path.join(path.dirname(oldProjectPath), sanitizedNewProjectName);
 
     // Dosya sisteminde klasör adını değiştir
-    if (fs.existsSync(oldBucketPath)) {
-      await fs.rename(oldBucketPath, newBucketPath);  // Klasör adını değiştiriyoruz
+    if (fs.existsSync(oldProjectPath)) {
+      await fs.rename(oldProjectPath, newProjectPath);  // Klasör adını değiştiriyoruz
     }
 
-    // Veritabanında bucket adını ve yolunu güncelle
-    bucket.bucketName = sanitizedNewBucketName;
-    bucket.path = newBucketPath;
-    await bucket.save();
+    // Veritabanında proje adını ve yolunu güncelle
+    project.projectName = sanitizedNewProjectName;
+    project.path = newProjectPath;
+    await project.save();
 
-    // Kullanıcıya ait bucket listesindeki bucket adını da güncelle
-    user.buckets = user.buckets.map(b => {
-      if (b.bucketId.toString() === bucketId) {
-        return { bucketId: b.bucketId, bucketName: sanitizedNewBucketName };
+    // Kullanıcıya ait projeler listesindeki proje adını da güncelle
+    user.projects = user.projects.map(p => {
+      if (p.projectId.toString() === projectId) {
+        return { projectId: p.projectId, projectName: sanitizedNewProjectName };
       }
-      return b;
+      return p;
     });
     await user.save();
 
-    return res.status(200).json({ message: 'Bucket adı başarıyla güncellendi.' });
+    return res.status(200).json({ message: 'Proje adı başarıyla güncellendi.' });
   } catch (error) {
-    console.error('Bucket adı güncellenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Bucket adı güncellenirken bir hata oluştu.' });
+    console.error('Proje adı güncellenirken hata oluştu:', error);
+    return res.status(500).json({ message: 'Proje adı güncellenirken bir hata oluştu.' });
   }
 };
 
-export const listUserBuckets = async (req: Request, res: Response) => {
+// Kullanıcının projelerini listeleme fonksiyonu
+export const listUserProjects = async (req: Request, res: Response) => {
   const token = req.header('Authorization')?.split(' ')[1];  // Kullanıcı token'ı
 
   if (!token) {
@@ -188,44 +193,45 @@ export const listUserBuckets = async (req: Request, res: Response) => {
     // Kullanıcıyı bul
     const user = await User.findOne({ UserMail: decodedToken.email })
       .populate({
-        path: 'buckets.bucketId',  // bucketId alanını populate et
-        model: 'Bucket',  // Bucket modelinden alıyoruz
-        select: 'bucketName _id'  // Sadece bucketName ve _id alanlarını alıyoruz
+        path: 'projects.projectId',  // projectId alanını populate et
+        model: 'Project',  // Project modelinden alıyoruz
+        select: 'projectName _id'  // Sadece projectName ve _id alanlarını alıyoruz
       });
 
     if (!user) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Kullanıcının buckets alanını döndür
-    const userBuckets = user.buckets.map((bucket: any) => ({
-      bucketId: bucket.bucketId._id,
-      bucketName: bucket.bucketId.bucketName,
+    // Kullanıcının projeler alanını döndür
+    const userProjects = user.projects.map((project: any) => ({
+      projectId: project.projectId._id,
+      projectName: project.projectId.projectName,
     }));
 
-    return res.status(200).json({ buckets: userBuckets });
+    return res.status(200).json({ projects: userProjects });
   } catch (error) {
-    console.error('Kullanıcının bucket\'ları listelenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Bucket\'lar listelenirken bir hata oluştu.' });
+    console.error('Kullanıcının projeleri listelenirken hata oluştu:', error);
+    return res.status(500).json({ message: 'Projeler listelenirken bir hata oluştu.' });
   }
 };
 
-export const getBucketById = async (req: Request, res: Response) => {
+// Projeyi ID'ye göre getirme fonksiyonu
+export const getProjectById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    // Veritabanında ID'ye göre bucket'ı bulun
-    const bucket = await Bucket.findById(id);
+    // Veritabanında ID'ye göre projeyi bulun
+    const project = await Project.findById(id);
 
-    // Bucket bulunamazsa 404 hatası döndür
-    if (!bucket) {
-      return res.status(404).json({ message: "Bucket bulunamadı" });
+    // Proje bulunamazsa 404 hatası döndür
+    if (!project) {
+      return res.status(404).json({ message: "Proje bulunamadı" });
     }
 
-    // Bucket'ı döndür (accessKey dahil)
-    res.json({ accessKey: bucket.accessKey });
+    // Projeyi döndür (accessKey dahil)
+    res.json({ accessKey: project.accessKey });
   } catch (error) {
-    console.error("Bucket getirme hatası:", error);
+    console.error("Proje getirme hatası:", error);
     res.status(500).json({ message: "Sunucu hatası" });
   }
 };

@@ -1,9 +1,10 @@
 import express from 'express';
-import { createSubbucket, listSubbuckets } from '../controllers/BucketController';
+import { createBucket,listBuckets,deleteBucket } from '../controllers/BucketController';
 
 const router = express.Router();
 
-router.post('/create-subbucket', createSubbucket);
-router.get('/list-subbuckets/:parentBucketId', listSubbuckets); 
+router.post('/create-subbucket', createBucket);
+router.get('/list-subbuckets/:parentBucketId', listBuckets);
+router.delete('/delete-subbucket/:bucketId', deleteBucket);
 
 export default router;
