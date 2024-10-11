@@ -95,11 +95,17 @@ export const createBucket = async (req: Request, res: Response) => {
 
 // Bucket'ları listeleme fonksiyonu
 export const listBuckets = async (req: Request, res: Response) => {
-  const { parentProjectId } = req.params;
-  const token = req.header('Authorization')?.split(' ')[1]; // Kullanıcı token'ı
+  const { parentProjectId } = req.params;  // URL parametresinden Ana Proje ID'sini alıyoruz
+  const authHeader = req.header('Authorization');
+  const token = authHeader?.split(' ')[1];  // Token'ı Authorization header'ından alıyoruz
 
-  if (!parentProjectId || !token) {
-    return res.status(400).json({ message: 'Ana proje ID ve token gereklidir.' });
+  // Eksik parametre kontrolü
+  if (!parentProjectId) {
+    return res.status(400).json({ message: 'Ana proje ID gereklidir.' });
+  }
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token gereklidir.' });
   }
 
   try {
@@ -115,17 +121,34 @@ export const listBuckets = async (req: Request, res: Response) => {
     // Kullanıcının sahip olduğu ana projeyi doğrula
     const parentProject = await Project.findOne({ _id: parentProjectId, owner: user._id });
     if (!parentProject) {
-      return res.status(404).json({ message: 'Ana proje bulunamadı ya da yetkiniz yok.' });
+      return res.status(404).json({ message: 'Ana proje bulunamadı ya da bu projeye erişim yetkiniz yok.' });
     }
 
     // Bucket'ları listele
-    const buckets = await Bucket.find({ projectId: parentProject._id });
+    const buckets = await Bucket.find({ projectId: parentProject._id });  // `projectId` field'ına göre bucket'ları listele
+    
+    if (!buckets.length) {
+      return res.status(404).json({ message: 'Bu projeye ait bucket bulunamadı.' });
+    }
+
+    // Başarılı durumda bucket listesi döndür
     return res.status(200).json({ buckets });
+
   } catch (error) {
+    // Hata durumunda loglama ve detaylı hata mesajı döndürme
     console.error('Bucket\'lar listelenirken hata oluştu:', error);
+    
+    // JWT doğrulama hatası kontrolü
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(403).json({ message: 'Geçersiz veya süresi dolmuş token.' });
+    }
+
+    // Diğer hatalar için genel hata mesajı
     return res.status(500).json({ message: 'Bucket\'lar listelenirken bir hata oluştu.' });
   }
 };
+
+
 
 // Bucket (alt klasör) silme fonksiyonu
 export const deleteBucket = async (req: Request, res: Response) => {
