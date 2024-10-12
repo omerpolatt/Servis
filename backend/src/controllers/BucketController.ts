@@ -60,7 +60,7 @@ export const createBucket = async (req: Request, res: Response) => {
 
     // Yeni bucket modelini oluştur
     const newBucket = new Bucket({
-      bucketName,
+      bucketName: bucketName,
       accessKey: bucketAccessKey,
       projectId: parentProject._id, // Projeye bağlı bucket
       path: bucketPath,
@@ -124,9 +124,10 @@ export const listBuckets = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Ana proje bulunamadı ya da bu projeye erişim yetkiniz yok.' });
     }
 
-    // Bucket'ları listele
-    const buckets = await Bucket.find({ projectId: parentProject._id });  // `projectId` field'ına göre bucket'ları listele
-    
+    // Bucket'ları listele ve sadece gerekli alanları seç
+    const buckets = await Bucket.find({ projectId: parentProject._id })
+      .select('bucketName accessKey projectId path');  // İstediğiniz alanları seçin (ör. bucketName)
+
     if (!buckets.length) {
       return res.status(404).json({ message: 'Bu projeye ait bucket bulunamadı.' });
     }
@@ -147,8 +148,6 @@ export const listBuckets = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Bucket\'lar listelenirken bir hata oluştu.' });
   }
 };
-
-
 
 // Bucket (alt klasör) silme fonksiyonu
 export const deleteBucket = async (req: Request, res: Response) => {

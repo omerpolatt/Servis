@@ -12,7 +12,7 @@ const upload = multer({ storage });
 router.post('/upload', authMiddleware, upload.single('file'), uploadFile);  // Dosya yükleme işlemi
 
 // Dosya listeleme
-router.get('/files', listFilesByBucket);
+router.get('/files/:bucketId', listFilesByBucket);
 
 // Dosya silme
 router.delete('/files/:fileName', deleteFile);

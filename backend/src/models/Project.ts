@@ -7,7 +7,7 @@ export interface IProject extends Document {
   bucket: { 
     bucketId: mongoose.Types.ObjectId; 
     bucketName: string; 
-  }[]; // Alt klasörleri hem ID hem de isimle göstereceğiz
+  }[]; 
   path: string;  // Dosya sistemindeki yol
 }
 

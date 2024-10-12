@@ -4,7 +4,6 @@ export interface IUser extends Document {
   UserName: string;
   UserMail: string;
   UserPassword: string;
-  _id: Types.ObjectId;
   projects: { projectId: Types.ObjectId; projectName: string }[]; 
 }
 
@@ -20,7 +19,8 @@ const UserSchema: Schema = new Schema(
     UserPassword: { type: String, required: true },  // Şifre zorunlu
     projects: [{ 
       projectId: { type: Schema.Types.ObjectId, ref: 'Project' },  
-      projectName: { type: String }  
+      projectName: { type: String } ,
+      _id: false  // `_id` alanını devre dışı bırakıyoruz
     }]
   },
     

@@ -72,6 +72,9 @@ export const uploadFile = async (req: Request, res: Response) => {
 };
 
 // Bucket'e ait dosyaları listeleme
+import mongoose from 'mongoose';
+
+// Bucket'e ait dosyaları listeleme
 export const listFilesByBucket = async (req: Request, res: Response) => {
   const { bucketId } = req.params;
 
@@ -80,20 +83,31 @@ export const listFilesByBucket = async (req: Request, res: Response) => {
   }
 
   try {
-    const files = await UploadedFile.find({ bucketId });
+    // bucketId'nin ObjectId formatına uygun olup olmadığını kontrol edin
+    if (!mongoose.Types.ObjectId.isValid(bucketId)) {
+      return res.status(400).json({ message: 'Geçersiz bucket ID formatı.' });
+    }
+
+    // ObjectId formatında bucketId oluşturun
+    const objectId = new mongoose.Types.ObjectId(bucketId);
+
+    const files = await UploadedFile.find({ bucketId: objectId });
     if (files.length === 0) {
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
+
     const filesWithUrl = files.map((file) => ({
       ...file.toObject(),
       url: `http://localhost:8080/uploads/${file.fileName}`  // Dosya URL'si
     }));
+
     res.status(200).json({ files: filesWithUrl });
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
-    res.status(500).json({ message: 'Dosyalar listelenemedi.' }); 
+    res.status(500).json({ message: 'Dosyalar listelenemedi.' });
   }
 };
+
 
 // Dosya silme
 export const deleteFile = async (req: Request, res: Response) => {
