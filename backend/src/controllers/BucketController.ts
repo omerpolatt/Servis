@@ -55,7 +55,6 @@ export const createBucket = async (req: Request, res: Response) => {
 
     // Dosya sisteminde bucket oluştur
     await fs.ensureDir(bucketPath);
-    console.log(`Bucket başarıyla oluşturuldu: ${bucketPath}`);
 
     // Yeni bucket modelini oluştur (accessKey'i dahil ederek)
     const newBucket = new Bucket({
@@ -127,8 +126,9 @@ export const listBuckets = async (req: Request, res: Response) => {
     const buckets = await Bucket.find({ projectId: parentProject._id })
       .select('bucketName accessKey projectId path');  // İstediğiniz alanları seçin (ör. bucketName)
 
+    // Eğer bucket yoksa boş bir array döndürelim, 404 değil
     if (!buckets.length) {
-      return res.status(404).json({ message: 'Bu projeye ait bucket bulunamadı.' });
+      return res.status(200).json({ message: 'Bu projeye ait bucket bulunamadı.', buckets: [] });
     }
 
     // Başarılı durumda bucket listesi döndür

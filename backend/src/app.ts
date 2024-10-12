@@ -15,7 +15,7 @@ connectDB()
 
 const app = express();
 app.use(cors({
-    origin: ['http://localhost:5180' , 'http://localhost:5181'] 
+    origin: ['http://localhost:5180' , 'http://localhost:5181' , 'http://127.0.0.1:5180/'] 
   }));
 app.use(express.json()); // JSON verilerini almak için
 
