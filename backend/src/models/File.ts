@@ -2,21 +2,20 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IFile extends Document {
   fileName: string;
-  filePath: string;  // Dosyanın dosya sistemindeki yolu
-  fileType: string;  // Dosya türü (MIME type)
-  fileSize: number;  // Dosya boyutu (byte cinsinden)
-  bucketId: mongoose.Types.ObjectId;  // Hangi alt klasörde olduğu
-  uploadedAt: Date;  // Yüklenme tarihi
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+  accessKey: string; 
+  uploadedAt: Date;
 }
 
 const FileSchema: Schema = new Schema({
-  fileName: { type: String, required: true },  // Dosya adı
-  filePath: { type: String, required: true },  // Dosyanın tam dosya yolu
-  fileType: { type: String, required: true },  // Dosya türü (MIME type)
-  fileSize: { type: Number, required: true },  // Dosya boyutu (byte cinsinden)
-  bucketId: { type: mongoose.Schema.Types.ObjectId, ref: 'BUcket', required: true },  // Hangi alt klasöre ait olduğu
-  uploadedAt: { type: Date, default: Date.now },  // Yüklenme tarihi otomatik olarak şu anki tarih
+  fileName: { type: String, required: true },
+  filePath: { type: String, required: true },
+  fileType: { type: String, required: true },
+  fileSize: { type: Number, required: true },
+  accessKey: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now },
 });
 
-// Model tanımı
-export const UploadedFile = mongoose.model<IFile>('File', FileSchema);
+export const UploadedFile = mongoose.model<IFile>('files', FileSchema);

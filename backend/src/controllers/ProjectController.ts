@@ -6,6 +6,7 @@ import User from '../models/Users';  // Kullanıcı modeli
 import { Project } from '../models/Project';  // Bucket, artık Project oldu
 import fs from 'fs-extra';
 import path from 'path';
+import { Bucket } from '../models/Bucket';
 
 // Proje oluşturma fonksiyonu
 export const createProject = async (req: Request, res: Response) => {
@@ -96,6 +97,21 @@ export const deleteProject = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Proje bulunamadı ya da yetkiniz yok.' });
     }
 
+    // Projeye ait bucket'ları bul ve sil
+    const buckets = await Bucket.find({ projectId: project._id });
+    
+    for (const bucket of buckets) {
+      // Dosya sistemindeki bucket yolunu sil
+      const bucketPath = bucket.path;
+      if (fs.existsSync(bucketPath)) {
+        await fs.remove(bucketPath);
+        console.log(`Bucket başarıyla silindi: ${bucketPath}`);
+      }
+
+      // Bucket'ı veritabanından sil
+      await Bucket.findByIdAndDelete(bucket._id);
+    }
+
     // Kullanıcının projeler listesinden bu projeyi çıkar
     user.projects = user.projects.filter(p => p.projectId.toString() !== projectId);
     await user.save();
@@ -109,7 +125,7 @@ export const deleteProject = async (req: Request, res: Response) => {
     // Projeyi veritabanından sil
     await Project.findByIdAndDelete(projectId);  // remove() yerine findByIdAndDelete() kullanıyoruz
 
-    return res.status(200).json({ message: 'Proje başarıyla silindi.' });
+    return res.status(200).json({ message: 'Proje ve ilgili bucketlar başarıyla silindi.' });
   } catch (error) {
     console.error('Proje silinirken hata oluştu:', error);
     return res.status(500).json({ message: 'Proje silinirken bir hata oluştu.' });

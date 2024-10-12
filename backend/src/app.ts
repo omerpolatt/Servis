@@ -3,10 +3,11 @@ import dotenv from 'dotenv';
 import connectDB from './config/db';
 import authRoutes from './routes/userRoutes';
 import cors from 'cors';
-import fileRoutes from './routes/fileRoutes';
 import { authMiddleware } from './middlewares/AuthMiddlewares';
 import bucketRoutes from './routes/bucketRoutes';
 import projectRoutes  from './routes/projectRoutes';
+import kullanicifileRoutes from './routes/KullanicifileRoutes';
+import adminfileRoutes from './routes/AdminFileRoutes';
 
 
 dotenv.config() // env dosyasını okumak için
@@ -20,10 +21,10 @@ app.use(cors({
 app.use(express.json()); // JSON verilerini almak için
 
 app.use('/api/auth', authRoutes);  // Kimlik doğrulama rotalarını ekle
-app.use('/api/files', authMiddleware , fileRoutes);
+app.use('/api/files', authMiddleware , adminfileRoutes); // admin için file işlemleri 
 app.use('/api/project',authMiddleware , projectRoutes )
 app.use('/api/bucket', authMiddleware, bucketRoutes);
-
+app.use('/', kullanicifileRoutes) // kullancıcı için file işlemleri
 
 
 

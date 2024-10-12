@@ -6,6 +6,7 @@ import path from 'path';
 import { Project } from '../models/Project';  // Bucket yerine Project oldu
 import User from '../models/Users';  // Kullanıcı modeli
 import mongoose from 'mongoose';
+import { UploadedFile } from '../models/File';
 
 // Bucket (alt klasör) oluşturma fonksiyonu
 export const createBucket = async (req: Request, res: Response) => {
@@ -180,9 +181,22 @@ export const deleteBucket = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Yetkiniz yok veya ana proje bulunamadı.' });
     }
 
+    // Bucket'a ait dosyaları bul
+    const files = await UploadedFile.find({ accessKey: bucket.accessKey });
+
+    // Her bir dosyayı sil
+    for (const file of files) {
+      // Dosya sistemindeki dosyayı sil
+      if (fs.existsSync(file.filePath)) {
+        await fs.remove(file.filePath);
+      }
+
+      // Veritabanından dosya kaydını sil
+      await UploadedFile.findByIdAndDelete(file._id);
+    }
+
     // Dosya sistemindeki bucket'ı sil
     await fs.remove(bucket.path);
-
 
     // Veritabanından bucket'ı sil
     await Bucket.findByIdAndDelete(id);
@@ -190,7 +204,7 @@ export const deleteBucket = async (req: Request, res: Response) => {
     // İlgili projenin buckets alanından bucket'ı sil
     await Project.updateOne({ _id: bucket.projectId }, { $pull: { buckets: { bucketId: id } } });
 
-    return res.status(200).json({ message: 'Bucket başarıyla silindi ve dosya sisteminden kaldırıldı.' });
+    return res.status(200).json({ message: 'Bucket ve ilgili dosyalar başarıyla silindi.' });
   } catch (error) {
     console.error('Bucket silme hatası:', error);
     return res.status(500).json({ message: 'Bucket silme işlemi sırasında hata oluştu.' });

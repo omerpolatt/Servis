@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadFile , listFilesByBucket, deleteFile } from '../controllers/FileController';  // Dosya yükleme controller'ı
+import { uploadFile , listFilesByBucket, deleteFile } from '../controllers/AdminFileController';  // Dosya yükleme controller'ı
 import multer from 'multer';  // Multer'i burada doğrudan kullanıyoruz
 import { authMiddleware } from '../middlewares/AuthMiddlewares';  // Kullanıcının doğrulanması için gerekli middleware
 
