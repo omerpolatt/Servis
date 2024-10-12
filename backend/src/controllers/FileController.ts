@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import fs from 'fs-extra';
 import path from 'path';
 import { UploadedFile } from '../models/File';
-import { Project } from '../models/Project';  // Bucket yerine Project
+
 
 // Dosyaların kaydedileceği ana dizin
 const UPLOADS_DIR = '/mnt/c/Users/avsro/Desktop/SPACES3';

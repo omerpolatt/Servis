@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post('/create-bucket', createBucket);
 router.get('/list-buckets/:parentProjectId', listBuckets);
-router.delete('/delete-bucket/:bucketId', deleteBucket);
+router.delete('/delete-bucket/:id', deleteBucket);
+
 
 export default router;

@@ -202,10 +202,13 @@ export const listUserProjects = async (req: Request, res: Response) => {
     }
 
     // Kullanıcının projeler alanını döndür
-    const userProjects = user.projects.map((project: any) => ({
+    const userProjects = user.projects
+    .filter(project => project.projectId && project.projectId._id) // Null olan projeleri filtreleyin
+    .map((project: any) => ({
       projectId: project.projectId._id,
       projectName: project.projectId.projectName,
     }));
+  
 
     return res.status(200).json({ projects: userProjects });
   } catch (error) {
@@ -214,23 +217,4 @@ export const listUserProjects = async (req: Request, res: Response) => {
   }
 };
 
-// Projeyi ID'ye göre getirme fonksiyonu
-export const getProjectById = async (req: Request, res: Response) => {
-  const { id } = req.params;
 
-  try {
-    // Veritabanında ID'ye göre projeyi bulun
-    const project = await Project.findById(id);
-
-    // Proje bulunamazsa 404 hatası döndür
-    if (!project) {
-      return res.status(404).json({ message: "Proje bulunamadı" });
-    }
-
-    // Projeyi döndür (accessKey dahil)
-    res.json({ accessKey: project.accessKey });
-  } catch (error) {
-    console.error("Proje getirme hatası:", error);
-    res.status(500).json({ message: "Sunucu hatası" });
-  }
-};

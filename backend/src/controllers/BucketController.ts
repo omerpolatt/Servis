@@ -9,11 +9,11 @@ import mongoose from 'mongoose';
 
 // Bucket (alt klasör) oluşturma fonksiyonu
 export const createBucket = async (req: Request, res: Response) => {
-  const { bucketName, parentProjectAccessKey } = req.body;  // Alt klasör adı ve ana projenin access key'i
+  const { bucketName, projectId } = req.body;  // Alt klasör adı ve proje ID'si
   const token = req.header('Authorization')?.split(' ')[1]; // Kullanıcı token'ı
 
-  if (!bucketName || !parentProjectAccessKey || !token) {
-    return res.status(400).json({ message: 'Bucket adı, ana proje access key ve token gereklidir.' });
+  if (!bucketName || !projectId || !token) {
+    return res.status(400).json({ message: 'Bucket adı, proje ID ve token gereklidir.' });
   }
 
   try {
@@ -26,16 +26,15 @@ export const createBucket = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    // Ana proje erişim anahtarı ile projeyi bul
-    const parentProject = await Project.findOne({ accessKey: parentProjectAccessKey, owner: user._id });
-
+    // Proje ID'si ile projeyi bul
+    const parentProject = await Project.findOne({ _id: projectId, owner: user._id });
     if (!parentProject) {
-      return res.status(404).json({ message: 'Ana proje bulunamadı ya da yetkiniz yok.' });
+      return res.status(404).json({ message: 'Proje bulunamadı ya da yetkiniz yok.' });
     }
 
     // `parentProject.path` kontrolü
     if (!parentProject.path) {
-      return res.status(400).json({ message: 'Ana proje yol bilgisi eksik.' });
+      return res.status(400).json({ message: 'Proje yol bilgisi eksik.' });
     }
 
     // Aynı isimde bir bucket var mı kontrol et
@@ -44,7 +43,7 @@ export const createBucket = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Bu isimde bir bucket zaten mevcut.' });
     }
 
-    // Bucket için accessKey oluştur
+    // **accessKey'i oluştur**
     const bucketAccessKey = jwt.sign(
       { bucketName },
       process.env.JWT_SECRET_KEY || 'default_secret_key',
@@ -58,10 +57,10 @@ export const createBucket = async (req: Request, res: Response) => {
     await fs.ensureDir(bucketPath);
     console.log(`Bucket başarıyla oluşturuldu: ${bucketPath}`);
 
-    // Yeni bucket modelini oluştur
+    // Yeni bucket modelini oluştur (accessKey'i dahil ederek)
     const newBucket = new Bucket({
       bucketName: bucketName,
-      accessKey: bucketAccessKey,
+      accessKey: bucketAccessKey,  // **accessKey burada ekleniyor**
       projectId: parentProject._id, // Projeye bağlı bucket
       path: bucketPath,
     });
@@ -82,7 +81,7 @@ export const createBucket = async (req: Request, res: Response) => {
       message: 'Bucket başarıyla oluşturuldu ve proje alt bucket listesine eklendi.',
       bucket: newBucket,
       folderPath: bucketPath,
-      bucketAccessKey,
+      bucketAccessKey,  // accessKey frontend'e de gönderiliyor
     });
   } catch (error) {
     if (typeof error === 'object' && (error as any).name === 'JsonWebTokenError') {
@@ -152,10 +151,16 @@ export const listBuckets = async (req: Request, res: Response) => {
 // Bucket (alt klasör) silme fonksiyonu
 export const deleteBucket = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const token = req.header('Authorization')?.split(' ')[1];
+  const authHeader = req.header('Authorization');
+  const token = authHeader ? authHeader.split(' ')[1] : null;  // Token'ı alıyoruz
 
-  if (!id || !token) {
-    return res.status(400).json({ message: 'Bucket ID ve token gereklidir.' });
+  // Eksik parametre kontrolü
+  if (!id) {
+    return res.status(400).json({ message: 'Bucket ID gereklidir.' });
+  }
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token gereklidir.' });
   }
 
   try {
@@ -177,7 +182,7 @@ export const deleteBucket = async (req: Request, res: Response) => {
 
     // Dosya sistemindeki bucket'ı sil
     await fs.remove(bucket.path);
-    console.log(`Bucket başarıyla dosya sisteminden silindi: ${bucket.path}`);
+
 
     // Veritabanından bucket'ı sil
     await Bucket.findByIdAndDelete(id);
@@ -191,3 +196,4 @@ export const deleteBucket = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Bucket silme işlemi sırasında hata oluştu.' });
   }
 };
+
