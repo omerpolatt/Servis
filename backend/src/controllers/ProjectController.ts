@@ -105,7 +105,6 @@ export const deleteProject = async (req: Request, res: Response) => {
       const bucketPath = bucket.path;
       if (fs.existsSync(bucketPath)) {
         await fs.remove(bucketPath);
-        console.log(`Bucket başarıyla silindi: ${bucketPath}`);
       }
 
       // Bucket'ı veritabanından sil

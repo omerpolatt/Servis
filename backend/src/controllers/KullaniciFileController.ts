@@ -71,13 +71,7 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
 
-    // Her dosya için URL oluştur
-    const filesWithUrl = files.map((file) => ({
-      ...file.toObject(),
-      url: `http://localhost:8080/uploads/${file.fileName}`
-    }));
 
-    res.status(200).json({ files: filesWithUrl });
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
     res.status(500).json({ message: 'Dosyalar listelenemedi.' });
