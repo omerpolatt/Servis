@@ -8,17 +8,21 @@ import bucketRoutes from './routes/bucketRoutes';
 import projectRoutes  from './routes/projectRoutes';
 import kullanicifileRoutes from './routes/KullanicifileRoutes';
 import adminfileRoutes from './routes/AdminFileRoutes';
-
+import path from 'path';
 
 dotenv.config() // env dosyasını okumak için
 
 connectDB()
 
 const app = express();
+
 app.use(cors({
-    origin: ['http://localhost:5180' , 'http://localhost:5181' , 'http://127.0.0.1:5180/'] 
+    origin: ['http://localhost:5180' , 'http://localhost:5181' , 'http://127.0.0.1:5180/' ] 
   }));
 app.use(express.json()); // JSON verilerini almak için
+
+app.use('/', express.static('/mnt/c/Users/avsro/Desktop/SPACES3'));
+
 
 app.use('/api/auth', authRoutes);  // Kimlik doğrulama rotalarını ekle
 app.use('/api/files', authMiddleware , adminfileRoutes); // admin için file işlemleri 

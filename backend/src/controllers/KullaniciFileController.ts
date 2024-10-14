@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { UploadedFile } from '../models/File';
 import { Bucket } from '../models/Bucket';
+import slugify from 'slugify';
 
 const UPLOADS_DIR = '/mnt/c/Users/avsro/Desktop/SPACES3';
 
@@ -18,26 +19,38 @@ export const uploadFile = async (req: Request, res: Response) => {
   }
 
   try {
-    const bucketkont = await Bucket.findOne({ bucketName:bucket , accessKey });
+    const bucketkont = await Bucket.findOne({ bucketName: bucket, accessKey });
     if (!bucketkont) {
       return res.status(403).json({ message: 'Alt klasör bulunamadı veya erişim yetkiniz yok.' });
     }
 
-    const folderPath = path.join(UPLOADS_DIR, project , bucket);
+    const folderPath = path.join(UPLOADS_DIR, project, bucket);
     await fs.ensureDir(folderPath);
 
-    const filePath = path.join(folderPath, req.file.originalname);
+    // Dosya adını ve uzantısını ayırın
+    const fileExtension = path.extname(req.file.originalname); // .png, .jpg gibi uzantıyı alıyoruz
+    const fileNameWithoutExtension = path.basename(req.file.originalname, fileExtension); // Uzantısız dosya adı
+
+    // Dosya adını slugify ederek temizle, URL dostu hale getir
+    const sanitizedFileName = slugify(fileNameWithoutExtension, {
+      remove: /[*+~()'"!:@]/g, // Özel karakterleri kaldır
+      lower: true,             // Dosya adını küçük harflere çevir
+      strict: true             // URL'de geçerli olmayan karakterleri kaldır
+    }) + fileExtension;        // Uzantıyı geri ekle
+
+    const filePath = path.join(folderPath, sanitizedFileName); // Dosya adını slugify edilmiş haliyle kaydet
     await fs.writeFile(filePath, req.file.buffer);
 
-    // Dosya bilgilerini veritabanına kaydet
+    // Veritabanına kaydederken de slugify edilmiş dosya adını kullanıyoruz
     const fileData = new UploadedFile({
-      fileName: req.file.originalname,
+      fileName: sanitizedFileName,  // Slugify edilmiş dosya adını kaydediyoruz
       filePath: filePath,
       fileType: req.file.mimetype,
       fileSize: req.file.size,
       accessKey: bucketkont.accessKey,
       uploadedAt: new Date(),
     });
+
     await fileData.save();
 
     res.status(200).json({ message: 'Dosya başarıyla yüklendi ve veritabanına kaydedildi.', filePath });
@@ -47,12 +60,11 @@ export const uploadFile = async (req: Request, res: Response) => {
   }
 };
 
+
 // Alt bucket'e ait dosyaları listeleme
 export const listFilesBySubBucket = async (req: Request, res: Response) => {
   const { accessKey, projectName, bucketName } = req.params;
-
-  console.log("Received Params - accessKey:", accessKey, "projectName:", projectName, "bucketName:", bucketName);
-
+  
   // Parametreler eksikse 400 Bad Request döndürme
   if (!accessKey || !projectName || !bucketName) {
     return res.status(400).json({ message: 'Access key, bucket adı veya proje adı gönderilmedi.' });
@@ -64,9 +76,7 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
     if (!bucketkont) {
       console.log("Bucket bulunamadı:", { accessKey, bucketName, projectName });
       return res.status(404).json({ message: 'Alt klasör bulunamadı veya erişim yetkiniz yok.' });
-    } else {
-      console.log("Bucket bulundu:", bucketkont);
-    }
+    } 
 
     // accessKey kullanarak ilgili dosyaları bulma
     const files = await UploadedFile.find({ accessKey });
@@ -74,13 +84,20 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
 
-    // Dosyaları JSON olarak döndürme
-    return res.status(200).json({ message: 'Dosyalar bulundu.', files });
+
+    // Her dosya için URL oluştur
+    const filesWithUrls = files.map((file) => ({
+      ...file.toObject(),
+      url: `https://94e6e3aaf7fa43528f29db9004239cdf.serveo.net/${file.fileName}`, // Burada dosya URL'sini oluşturuyorsunuz
+    }));
+
+    res.status(200).json({ files: filesWithUrls });
+   
 
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-  }
+    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
+  }
 };
 
 // Dosya ID'sine göre dosya silme işlemi
@@ -103,7 +120,7 @@ export const deleteFileById = async (req: Request, res: Response) => {
 
     // Dosya sisteminden dosyayı sil
     if (await fs.pathExists(filePath)) {
-      await fs.remove(filePath);
+      await fs.remove(filePath);  // Dosyayı dosya sisteminden sil
     } else {
       return res.status(404).json({ message: 'Dosya dosya sisteminde bulunamadı.' });
     }

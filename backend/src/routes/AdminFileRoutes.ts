@@ -18,6 +18,7 @@ router.get('/buckets/accessKey/:bucketId' ,getAccessKeyByBucketId);
 
 
 // Dosya silme (accessKey ve fileId ile)
-router.delete('/files', authMiddleware, deleteFileByAccessKey);
+router.delete('/:accessKey/:fileId', deleteFileByAccessKey);  // Route parametrelerini tanımladık
+
 
 export default router;

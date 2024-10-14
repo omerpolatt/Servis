@@ -99,29 +99,27 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
   }
 };
 
-
 export const deleteFileByAccessKey = async (req: Request, res: Response) => {
-  const { accessKey, fileId } = req.body;
+  const { accessKey, fileId } = req.params;  // Parametre olarak accessKey ve fileId alıyoruz
 
   if (!accessKey || !fileId) {
     return res.status(400).json({ message: 'Access Key veya dosya ID gönderilmedi.' });
   }
 
   try {
-    // Access key ile bucket bul
-    const bucket = await Bucket.findOne({ accessKey });
-    if (!bucket) {
-      return res.status(404).json({ message: 'Geçersiz access key veya bucket bulunamadı.' });
-    }
-
-    // fileId ve bucketId ile dosyayı bul
-    const file = await UploadedFile.findOne({ _id: fileId, bucketId: bucket._id });
+    // accessKey ve fileId ile dosyayı buluyoruz
+    const file = await UploadedFile.findOne({ _id: fileId, accessKey });
+    
     if (!file) {
       return res.status(404).json({ message: 'Dosya bulunamadı.' });
     }
 
-    // Dosyayı dosya sisteminden sil
-    await fs.remove(file.filePath);
+    // Dosyanın dosya sistemindeki yolunu kontrol edip, silme işlemi yapıyoruz
+    if (await fs.pathExists(file.filePath)) {
+      await fs.remove(file.filePath);  // Dosyayı dosya sisteminden sil
+    } else {
+      return res.status(404).json({ message: 'Dosya dosya sisteminde bulunamadı.' });
+    }
 
     // Dosya kaydını MongoDB'den sil
     await UploadedFile.deleteOne({ _id: file._id });
