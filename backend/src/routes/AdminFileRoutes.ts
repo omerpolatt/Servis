@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadFile , listFilesByBucket, deleteFile } from '../controllers/AdminFileController';  // Dosya yükleme controller'ı
+import { uploadFile, listFilesByAccessKey, deleteFileByAccessKey  , getAccessKeyByBucketId} from '../controllers/AdminFileController';
 import multer from 'multer';  // Multer'i burada doğrudan kullanıyoruz
 import { authMiddleware } from '../middlewares/AuthMiddlewares';  // Kullanıcının doğrulanması için gerekli middleware
 
@@ -11,10 +11,13 @@ const upload = multer({ storage });
 
 router.post('/upload', authMiddleware, upload.single('file'), uploadFile);  // Dosya yükleme işlemi
 
-// Dosya listeleme
-router.get('/files/:bucketId', listFilesByBucket);
+// Dosya listeleme (accessKey ile)
+router.get('/files/:accessKey', listFilesByAccessKey);
 
-// Dosya silme
-router.delete('/files/:fileName', deleteFile);
+router.get('/buckets/accessKey/:bucketId' ,getAccessKeyByBucketId);
+
+
+// Dosya silme (accessKey ve fileId ile)
+router.delete('/files', authMiddleware, deleteFileByAccessKey);
 
 export default router;

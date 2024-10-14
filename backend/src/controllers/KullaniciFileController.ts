@@ -51,31 +51,36 @@ export const uploadFile = async (req: Request, res: Response) => {
 export const listFilesBySubBucket = async (req: Request, res: Response) => {
   const { accessKey, projectName, bucketName } = req.params;
 
-  console.log(accessKey, projectName, bucketName)
+  console.log("Received Params - accessKey:", accessKey, "projectName:", projectName, "bucketName:", bucketName);
 
+  // Parametreler eksikse 400 Bad Request döndürme
   if (!accessKey || !projectName || !bucketName) {
     return res.status(400).json({ message: 'Access key, bucket adı veya proje adı gönderilmedi.' });
   }
-  
-  try {
-   
-    const bucketkont = await Bucket.findOne({ accessKey, bucketName: bucketName });
 
+  try {
+    // Bucket'i veritabanında arama
+    const bucketkont = await Bucket.findOne({ accessKey, bucketName });
     if (!bucketkont) {
+      console.log("Bucket bulunamadı:", { accessKey, bucketName, projectName });
       return res.status(404).json({ message: 'Alt klasör bulunamadı veya erişim yetkiniz yok.' });
+    } else {
+      console.log("Bucket bulundu:", bucketkont);
     }
 
-    // accessKey kullanarak ilgili dosyaları bul
+    // accessKey kullanarak ilgili dosyaları bulma
     const files = await UploadedFile.find({ accessKey });
     if (files.length === 0) {
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
 
+    // Dosyaları JSON olarak döndürme
+    return res.status(200).json({ message: 'Dosyalar bulundu.', files });
 
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
-    res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-}
+    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
+  }
 };
 
 // Dosya ID'sine göre dosya silme işlemi

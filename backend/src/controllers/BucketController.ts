@@ -153,7 +153,7 @@ export const listBuckets = async (req: Request, res: Response) => {
 export const deleteBucket = async (req: Request, res: Response) => {
   const { id } = req.params;
   const authHeader = req.header('Authorization');
-  const token = authHeader ? authHeader.split(' ')[1] : null;  // Token'ı alıyoruz
+  const token = authHeader ? authHeader.split(' ')[1] : null;
 
   // Eksik parametre kontrolü
   if (!id) {
@@ -202,7 +202,7 @@ export const deleteBucket = async (req: Request, res: Response) => {
     await Bucket.findByIdAndDelete(id);
 
     // İlgili projenin buckets alanından bucket'ı sil
-    await Project.updateOne({ _id: bucket.projectId }, { $pull: { buckets: { bucketId: id } } });
+    await Project.updateOne({ _id: bucket.projectId }, { $pull: { buckets: { _id: id } } });
 
     return res.status(200).json({ message: 'Bucket ve ilgili dosyalar başarıyla silindi.' });
   } catch (error) {
@@ -210,4 +210,5 @@ export const deleteBucket = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Bucket silme işlemi sırasında hata oluştu.' });
   }
 };
+
 
