@@ -122,9 +122,13 @@ export const deleteProject = async (req: Request, res: Response) => {
     }
 
     // Projeyi veritabanından sil
-    await Project.findByIdAndDelete(projectId);  // remove() yerine findByIdAndDelete() kullanıyoruz
+    await Project.findByIdAndDelete(projectId);
 
-    return res.status(200).json({ message: 'Proje ve ilgili bucketlar başarıyla silindi.' });
+    // Kullanıcıya ait projelerden silinen projeyi kaldır (User schema'daki `projects` listesinden)
+    user.projects = user.projects.filter(project => project.projectId.toString() !== projectId);
+    await user.save();  // Değişikliği kaydet
+
+    return res.status(200).json({ message: 'Proje, ilgili bucketlar ve kullanıcı projelerinden başarıyla silindi.' });
   } catch (error) {
     console.error('Proje silinirken hata oluştu:', error);
     return res.status(500).json({ message: 'Proje silinirken bir hata oluştu.' });
