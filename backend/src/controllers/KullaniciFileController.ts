@@ -85,19 +85,30 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
     }
 
 
-    // Her dosya için URL oluştur
-    const filesWithUrls = files.map((file) => ({
-      ...file.toObject(),
-      url: `https://94e6e3aaf7fa43528f29db9004239cdf.serveo.net/${file.fileName}`, // Burada dosya URL'sini oluşturuyorsunuz
-    }));
+    const filesWithUrls = files.map((file) => {
+      // Dosya yolundan "Uploads/" kısmını çıkararak relative path oluşturuyoruz
+      const relativePath = file.filePath.split('SPACES3')[1];
+      console.log("Relative Path:", relativePath);
+      
+      // Path'in her segmentini encode ediyoruz ve '/' karakterini tekrar yerine koyuyoruz
+      const encodedPath = relativePath
+        .split('/')
+        .map(segment => encodeURIComponent(segment))
+        .join('/');
+      
+      return {
+        ...file.toObject(),
+        url: `https://95a886193a8110f067168394d722b087.serveo.net/uploads/${encodedPath}`,
+      };
+    });
 
     res.status(200).json({ files: filesWithUrls });
    
 
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-  }
+    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
+  }
 };
 
 // Dosya ID'sine göre dosya silme işlemi

@@ -70,33 +70,48 @@ export const uploadFile = async (req: Request, res: Response) => {
 
 
 export const listFilesByAccessKey = async (req: Request, res: Response) => {
-  const { accessKey } = req.params;  // accessKey'yi parametre olarak alıyoruz
-
-  if (!accessKey) {
-    return res.status(400).json({ message: 'Access Key gönderilmedi.' });
-  }
-
   try {
-    // accessKey ile UploadedFile'ları buluyoruz
+    const { accessKey } = req.params;
+    console.log("Received Access Key:", accessKey);
+
+    if (!accessKey) {
+      console.log("Access Key gönderilmedi.");
+      return res.status(400).json({ message: 'Access Key gönderilmedi.' });
+    }
+
+    // UploadedFile sorgusunun sonucunu kontrol et
     const files = await UploadedFile.find({ accessKey });
-    
+    console.log("Files fetched from database:", files);
+
     if (files.length === 0) {
+      console.log("No files found for the given access key.");
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
 
     // Dosya bilgilerini URL ile birlikte döndürüyoruz
-    const filesWithUrl = files.map((file) => ({
-      ...file.toObject(),
-      url: `http://localhost:8080/uploads/${file.fileName}`,  // Dosya URL'si
-    }));
+    const filesWithUrl = files.map((file) => {
+      const relativePath = file.filePath.split('SPACES3/')[1];
+      console.log("Relative Path:", relativePath);
+    
+      // Tüm path'i encode ederken '/' karakterini tekrar yerine koyun
+      const encodedPath = relativePath
+        .split('/')
+        .map(segment => encodeURIComponent(segment))
+        .join('/');
+    
+      return {
+        ...file.toObject(),
+        url: `https://95a886193a8110f067168394d722b087.serveo.net/uploads/${encodedPath}`,
+      };
+    });
+    
+    console.log("Files with URL:", filesWithUrl);
 
-    // Dosyaları JSON formatında geri döndürüyoruz
     return res.status(200).json({ files: filesWithUrl });
-
   } catch (error) {
-    console.error('Dosyalar listelenirken hata oluştu:', error);
-    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-  }
+    console.error('Error in listFilesByAccessKey function:', error);
+    return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
+  }
 };
 
 export const deleteFileByAccessKey = async (req: Request, res: Response) => {
