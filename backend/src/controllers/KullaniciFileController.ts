@@ -4,6 +4,7 @@ import path from 'path';
 import { UploadedFile } from '../models/File';
 import { Bucket } from '../models/Bucket';
 import slugify from 'slugify';
+import mongoose from 'mongoose';
 
 const UPLOADS_DIR = '/mnt/c/Users/avsro/Desktop/SPACES3';
 
@@ -144,4 +145,30 @@ export const deleteFileById = async (req: Request, res: Response) => {
     console.error('Dosya silinirken hata oluştu:', error);
     res.status(500).json({ message: 'Dosya silinirken bir hata oluştu.' });
   }
+};
+
+
+export const getFileById = async (req: Request, res: Response) => {
+  const { fileId, accessKey } = req.params;
+
+  try {
+    const file = await UploadedFile.findOne({ _id: new mongoose.Types.ObjectId(fileId), accessKey });
+    if (!file) {
+      return res.status(404).json({ message: 'Dosya bulunamadı.' });
+    }
+
+    const relativePath = file.filePath.split('SPACES3')[1];
+    const encodedPath = relativePath
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
+    res.status(200).json({
+      ...file.toObject(),
+      url: `https://d76081dbe8685cf6160e2e70f5d0dac5.serveo.net/uploads/${encodedPath}`,
+    });
+  } catch (error) {
+    console.error('Dosya getirilemedi:', error);
+    res.status(500).json({ message: 'Dosya getirilemedi.' });
+  }
 };
