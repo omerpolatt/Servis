@@ -11,8 +11,8 @@ const UPLOADS_DIR = '/mnt/c/Users/avsro/Desktop/SPACES3';
 export const uploadFile = async (req: Request, res: Response) => {
   const { project, bucket, accessKey } = req.body;
 
-  if (!req.file) {
-    return res.status(400).json({ message: 'Dosya yüklenemedi, lütfen bir dosya seçin.' });
+  if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+    return res.status(400).json({ message: 'Dosyalar yüklenemedi, lütfen dosya(lar) seçin.' });
   }
 
   if (!bucket || !project || !accessKey) {
@@ -28,36 +28,45 @@ export const uploadFile = async (req: Request, res: Response) => {
     const folderPath = path.join(UPLOADS_DIR, project, bucket);
     await fs.ensureDir(folderPath);
 
-    // Dosya adını ve uzantısını ayırın
-    const fileExtension = path.extname(req.file.originalname); // .png, .jpg gibi uzantıyı alıyoruz
-    const fileNameWithoutExtension = path.basename(req.file.originalname, fileExtension); // Uzantısız dosya adı
+    const uploadedFiles = [];
 
-    // Dosya adını slugify ederek temizle, URL dostu hale getir
-    const sanitizedFileName = slugify(fileNameWithoutExtension, {
-      remove: /[*+~()'"!:@]/g, // Özel karakterleri kaldır
-      lower: true,             // Dosya adını küçük harflere çevir
-      strict: true             // URL'de geçerli olmayan karakterleri kaldır
-    }) + fileExtension;        // Uzantıyı geri ekle
+    // Tüm dosyaları işleriz
+    for (const file of req.files) {
+      const fileExtension = path.extname(file.originalname);
+      const fileNameWithoutExtension = path.basename(file.originalname, fileExtension);
 
-    const filePath = path.join(folderPath, sanitizedFileName); // Dosya adını slugify edilmiş haliyle kaydet
-    await fs.writeFile(filePath, req.file.buffer);
+      const sanitizedFileName = slugify(fileNameWithoutExtension, {
+        remove: /[*+~()'"!:@]/g,
+        lower: true,
+        strict: true
+      }) + fileExtension;
 
-    // Veritabanına kaydederken de slugify edilmiş dosya adını kullanıyoruz
-    const fileData = new UploadedFile({
-      fileName: sanitizedFileName,  // Slugify edilmiş dosya adını kaydediyoruz
-      filePath: filePath,
-      fileType: req.file.mimetype,
-      fileSize: req.file.size,
-      accessKey: bucketkont.accessKey,
-      uploadedAt: new Date(),
-    });
+      const existingFile = await UploadedFile.findOne({ fileName: sanitizedFileName, accessKey: bucketkont.accessKey });
+      
+      if (existingFile) {
+        return res.status(409).json({ message: `Bu isimde bir dosya zaten mevcut: ${sanitizedFileName}` });
+      }
 
-    await fileData.save();
+      const filePath = path.join(folderPath, sanitizedFileName);
+      await fs.writeFile(filePath, file.buffer);
 
-    res.status(200).json({ message: 'Dosya başarıyla yüklendi ve veritabanına kaydedildi.', filePath , fileId: fileData._id });
+      const fileData = new UploadedFile({
+        fileName: sanitizedFileName,
+        filePath: filePath,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        accessKey: bucketkont.accessKey,
+        uploadedAt: new Date(),
+      });
+
+      await fileData.save();
+      uploadedFiles.push({ filePath, fileId: fileData._id });
+    }
+
+    res.status(200).json({ message: 'Dosyalar başarıyla yüklendi ve veritabanına kaydedildi.', files: uploadedFiles });
   } catch (error) {
-    console.error('Dosya yüklenirken hata oluştu:', error);
-    res.status(500).json({ message: 'Dosya yüklenirken bir hata oluştu.' });
+    console.error('Dosyalar yüklenirken hata oluştu:', error);
+    res.status(500).json({ message: 'Dosyalar yüklenirken bir hata oluştu.' });
   }
 };
 
@@ -99,7 +108,7 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
       
       return {
         ...file.toObject(),
-        url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
+        url: `https://22733193f73a552a32a65fa05e5daf40.serveo.net/uploads/${encodedPath}`,
       };
     });
 
@@ -121,23 +130,23 @@ export const deleteFileById = async (req: Request, res: Response) => {
   }
 
   try {
-    // Dosyayı veritabanından bul
+    // 1. Veritabanında dosyayı bul
     const file = await UploadedFile.findOne({ _id: fileId, accessKey });
     if (!file) {
-      return res.status(404).json({ message: 'Dosya bulunamadı.' });
+      return res.status(404).json({ message: 'Dosya veritabanında bulunamadı.' });
     }
 
-    // Dosyanın dosya sistemindeki yolunu belirle
+    // 2. Dosya sistemindeki yolu belirle
     const filePath = file.filePath;
 
-    // Dosya sisteminden dosyayı sil
+    // 3. Dosya sisteminde mevcutsa dosyayı sil
     if (await fs.pathExists(filePath)) {
-      await fs.remove(filePath);  // Dosyayı dosya sisteminden sil
+      await fs.remove(filePath); // Dosya sisteminden sil
     } else {
       return res.status(404).json({ message: 'Dosya dosya sisteminde bulunamadı.' });
     }
 
-    // Dosyayı veritabanından sil
+    // 4. Veritabanındaki dosya kaydını sil
     await UploadedFile.findByIdAndDelete(fileId);
 
     res.status(200).json({ message: 'Dosya başarıyla silindi.' });
@@ -146,6 +155,7 @@ export const deleteFileById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Dosya silinirken bir hata oluştu.' });
   }
 };
+
 
 
 export const getFileById = async (req: Request, res: Response) => {
@@ -165,7 +175,7 @@ export const getFileById = async (req: Request, res: Response) => {
 
     res.status(200).json({
       ...file.toObject(),
-      url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
+      url: `https://22733193f73a552a32a65fa05e5daf40.serveo.net/uploads/${encodedPath}`,
     });
   } catch (error) {
     console.error('Dosya getirilemedi:', error);

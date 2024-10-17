@@ -1,12 +1,12 @@
 import express from 'express';
-    import { uploadFile, listFilesBySubBucket,deleteFileById,getFileById} from '../controllers/KullaniciFileController';
-    import multer from 'multer';
+import { uploadFile, listFilesBySubBucket,deleteFileById,getFileById} from '../controllers/KullaniciFileController';
+import multer from 'multer';
 
-    const router = express.Router();
-    const upload = multer(); // multer middleware'i dosya işlemleri için kullanıyoruz
+  const router = express.Router();
+  const upload = multer(); // multer middleware'i dosya işlemleri için kullanıyoruz
 
-    // Dosya yükleme
-    router.post('/s3Space', upload.single('file'), uploadFile);
+  // Dosya yükleme
+  router.post('/s3Space', upload.array('file', 10), uploadFile);
 
   // Alt bucket'e ait dosyaları listeleme
   router.get('/s3Space/:projectName/:bucketName/:accessKey/:fileId?', async (req, res) => {
@@ -19,10 +19,10 @@ import express from 'express';
       // fileId yoksa tüm dosyaları listele
       await listFilesBySubBucket(req, res)
     }
-});
+    });
 
-    router.delete('/s3Space/:projectName/:bucketName/:accessKey/:fileId', deleteFileById);
+  router.delete('/s3Space/:projectName/:bucketName/:accessKey/:fileId', deleteFileById);
 
 
 
-    export default router;
+export default router;

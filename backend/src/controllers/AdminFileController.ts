@@ -72,7 +72,6 @@ export const uploadFile = async (req: Request, res: Response) => {
 export const listFilesByAccessKey = async (req: Request, res: Response) => {
   try {
     const { accessKey } = req.params;
-    console.log("Received Access Key:", accessKey);
 
     if (!accessKey) {
       console.log("Access Key gönderilmedi.");
@@ -81,10 +80,9 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
 
     // UploadedFile sorgusunun sonucunu kontrol et
     const files = await UploadedFile.find({ accessKey });
-    console.log("Files fetched from database:", files);
+    
 
     if (files.length === 0) {
-      console.log("No files found for the given access key.");
       return res.status(200).json({ message: 'Henüz yüklenmiş dosya yok.' });
     }
 
@@ -101,7 +99,7 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
     
       return {
         ...file.toObject(),
-        url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
+        url: `https://22733193f73a552a32a65fa05e5daf40.serveo.net/uploads/${encodedPath}`,
       };
     });
     
@@ -115,34 +113,51 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
 };
 
 export const deleteFileByAccessKey = async (req: Request, res: Response) => {
-  const { accessKey, fileId } = req.params;  // Parametre olarak accessKey ve fileId alıyoruz
+  const { accessKey, fileId } = req.params;
 
   if (!accessKey || !fileId) {
     return res.status(400).json({ message: 'Access Key veya dosya ID gönderilmedi.' });
   }
 
   try {
-    // accessKey ve fileId ile dosyayı buluyoruz
+    // 1. Veritabanında dosyayı bul
     const file = await UploadedFile.findOne({ _id: fileId, accessKey });
-    
     if (!file) {
-      return res.status(404).json({ message: 'Dosya bulunamadı.' });
+      return res.status(404).json({ message: 'Dosya veritabanında bulunamadı.' });
     }
 
-    // Dosyanın dosya sistemindeki yolunu kontrol edip, silme işlemi yapıyoruz
-    if (await fs.pathExists(file.filePath)) {
-      await fs.remove(file.filePath);  // Dosyayı dosya sisteminden sil
-    } else {
+    // 2. Dosya yolunu al ve logla
+    const filePath = file.filePath;
+    console.log('Silinecek dosyanın dosya yolu:', filePath); // Dosya yolunu yazdır
+
+    // 3. Dosya sisteminde olup olmadığını kontrol et
+    if (!fs.existsSync(filePath)) {
+      console.error('Dosya sisteminde bulunamadı:', filePath);
       return res.status(404).json({ message: 'Dosya dosya sisteminde bulunamadı.' });
     }
 
-    // Dosya kaydını MongoDB'den sil
-    await UploadedFile.deleteOne({ _id: file._id });
+    // 4. Dosyayı dosya sisteminden sil
+    fs.unlink(filePath, async (err) => {
+      if (err) {
+        console.error('Dosya sisteminden silinirken hata oluştu:', err);
+        return res.status(500).json({ message: 'Dosya sisteminden silinirken hata oluştu.' });
+      }
 
-    res.status(200).json({ message: 'Dosya başarıyla silindi.' });
+      console.log('Dosya başarıyla dosya sisteminden silindi.');
+
+      // 5. Dosyayı veritabanından sil
+      try {
+        await UploadedFile.deleteOne({ _id: fileId });
+        console.log('Dosya kaydı veritabanından başarıyla silindi.');
+        return res.status(200).json({ message: 'Dosya başarıyla silindi.' });
+      } catch (dbErr) {
+        console.error('Veritabanından silinirken hata oluştu:', dbErr);
+        return res.status(500).json({ message: 'Veritabanından silinirken hata oluştu.' });
+      }
+    });
   } catch (error) {
     console.error('Dosya silinirken hata oluştu:', error);
-    res.status(500).json({ message: 'Dosya silinemedi.' });
+    return res.status(500).json({ message: 'Dosya silinirken bir hata oluştu.' });
   }
 };
 
