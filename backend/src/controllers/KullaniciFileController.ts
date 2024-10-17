@@ -54,7 +54,7 @@ export const uploadFile = async (req: Request, res: Response) => {
 
     await fileData.save();
 
-    res.status(200).json({ message: 'Dosya başarıyla yüklendi ve veritabanına kaydedildi.', filePath });
+    res.status(200).json({ message: 'Dosya başarıyla yüklendi ve veritabanına kaydedildi.', filePath , fileId: fileData._id });
   } catch (error) {
     console.error('Dosya yüklenirken hata oluştu:', error);
     res.status(500).json({ message: 'Dosya yüklenirken bir hata oluştu.' });
@@ -99,7 +99,7 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
       
       return {
         ...file.toObject(),
-        url: `https://95a886193a8110f067168394d722b087.serveo.net/uploads/${encodedPath}`,
+        url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
       };
     });
 
@@ -109,7 +109,7 @@ export const listFilesBySubBucket = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Dosya listelenirken hata oluştu:', error);
     return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-  }
+}
 };
 
 // Dosya ID'sine göre dosya silme işlemi
@@ -165,10 +165,10 @@ export const getFileById = async (req: Request, res: Response) => {
 
     res.status(200).json({
       ...file.toObject(),
-      url: `https://d76081dbe8685cf6160e2e70f5d0dac5.serveo.net/uploads/${encodedPath}`,
+      url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
     });
   } catch (error) {
     console.error('Dosya getirilemedi:', error);
     res.status(500).json({ message: 'Dosya getirilemedi.' });
-  }
+  }
 };

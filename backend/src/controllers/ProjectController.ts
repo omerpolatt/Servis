@@ -7,6 +7,7 @@ import { Project } from '../models/Project';  // Bucket, artık Project oldu
 import fs from 'fs-extra';
 import path from 'path';
 import { Bucket } from '../models/Bucket';
+import { UploadedFile } from '../models/File';
 
 // Proje oluşturma fonksiyonu
 export const createProject = async (req: Request, res: Response) => {
@@ -99,12 +100,25 @@ export const deleteProject = async (req: Request, res: Response) => {
 
     // Projeye ait bucket'ları bul ve sil
     const buckets = await Bucket.find({ projectId: project._id });
-    
+
     for (const bucket of buckets) {
+      // Bucket'a ait dosyaları bul ve sil
+      const files = await UploadedFile.find({ accessKey: bucket.accessKey });
+
+      for (const file of files) {
+        // Dosya sistemindeki dosyayı sil
+        if (fs.existsSync(file.filePath)) {
+          await fs.remove(file.filePath);
+        }
+
+        // Veritabanından dosya kaydını sil
+        await UploadedFile.findByIdAndDelete(file._id);
+      }
+
       // Dosya sistemindeki bucket yolunu sil
       const bucketPath = bucket.path;
       if (fs.existsSync(bucketPath)) {
-        await fs.remove(bucketPath);
+        await fs.remove(bucketPath);  // Bucket klasörünü sil
       }
 
       // Bucket'ı veritabanından sil
@@ -118,22 +132,23 @@ export const deleteProject = async (req: Request, res: Response) => {
     // Dosya sistemindeki proje yolunu sil
     const projectPath = project.path;
     if (fs.existsSync(projectPath)) {
-      await fs.remove(projectPath);  // Dosya sisteminden klasörü sil
+      await fs.remove(projectPath);  // Proje klasörünü sil
     }
 
     // Projeyi veritabanından sil
     await Project.findByIdAndDelete(projectId);
 
-    // Kullanıcıya ait projelerden silinen projeyi kaldır (User schema'daki `projects` listesinden)
+    // Kullanıcıya ait projelerden silinen projeyi kaldır (User schema'daki projects listesinden)
     user.projects = user.projects.filter(project => project.projectId.toString() !== projectId);
     await user.save();  // Değişikliği kaydet
 
-    return res.status(200).json({ message: 'Proje, ilgili bucketlar ve kullanıcı projelerinden başarıyla silindi.' });
+    return res.status(200).json({ message: 'Proje, ilgili bucketlar ve tüm dosyalar başarıyla silindi.' });
   } catch (error) {
     console.error('Proje silinirken hata oluştu:', error);
     return res.status(500).json({ message: 'Proje silinirken bir hata oluştu.' });
   }
 };
+
 
 // Proje adını güncelleme fonksiyonu
 export const updateProjectName = async (req: Request, res: Response) => {

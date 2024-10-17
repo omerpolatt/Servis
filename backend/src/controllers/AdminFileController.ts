@@ -101,7 +101,7 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
     
       return {
         ...file.toObject(),
-        url: `https://95a886193a8110f067168394d722b087.serveo.net/uploads/${encodedPath}`,
+        url: `https://8e948e14ed611530efb503da2dbb18f2.serveo.net/uploads/${encodedPath}`,
       };
     });
     
@@ -111,7 +111,7 @@ export const listFilesByAccessKey = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error in listFilesByAccessKey function:', error);
     return res.status(500).json({ message: 'Dosyalar listelenemedi.' });
-  }
+}
 };
 
 export const deleteFileByAccessKey = async (req: Request, res: Response) => {

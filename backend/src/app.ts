@@ -1,11 +1,11 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/db';
-import authRoutes from './routes/userRoutes';
+import authRoutes from './routes/UserRoutes';
 import cors from 'cors';
 import { authMiddleware } from './middlewares/AuthMiddlewares';
-import bucketRoutes from './routes/bucketRoutes';
-import projectRoutes  from './routes/projectRoutes';
+import bucketRoutes from './routes/BucketRoutes';
+import projectRoutes  from './routes/ProjectRoutes';
 import kullanicifileRoutes from './routes/KullanicifileRoutes';
 import adminfileRoutes from './routes/AdminFileRoutes';
 
